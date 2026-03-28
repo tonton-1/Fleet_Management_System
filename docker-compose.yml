@@ -1,0 +1,82 @@
+services:
+  # MySQL Database Service
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}' # Please use a secure password in production
+      MYSQL_DATABASE: '${DB_NAME}'
+      MYSQL_USER: '${DB_USER}'
+      MYSQL_PASSWORD: '${DB_PASSWORD}'
+      TZ: Asia/Bangkok
+    command: --default-time-zone=Asia/Bangkok
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - app-network
+
+  # phpMyAdmin Service
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: pma
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - '8080:80'
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+    networks:
+      - app-network
+
+  # Backend Service (Node.js)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: backend_app
+    restart: always
+    ports:
+      - '3000:3000'
+    depends_on:
+      - db
+    environment:
+      # These environment variables should be used in your backend to connect to the database
+      DB_HOST: 'db'
+      DB_PORT: 3306 # Default MySQL port inside docker network
+      DB_USER: '${DB_USER}'
+      DB_PASSWORD: '${DB_PASSWORD}'
+      DB_NAME: '${DB_NAME}'
+      JWT_ACCESS_SECRET: '${JWT_ACCESS_SECRET}'
+      JWT_REFRESH_SECRET: '${JWT_REFRESH_SECRET}'
+    networks:
+      - app-network
+
+  # Frontend Service (Vue.js with Vite)
+  # This service is for development and runs the vite dev server
+  frontend:
+    image: node:18-alpine
+    container_name: frontend_app
+    restart: always
+    working_dir: /app
+    volumes:
+      # Mount the current directory to /app in the container
+      - .:/app
+      # Use a container-only volume for node_modules to avoid overwriting from host
+      - /app/node_modules
+    ports:
+      # Expose vite's default port
+      - '5173:5173'
+    command: sh -c "npm install && npm run dev -- --host"
+    networks:
+      - app-network
+
+volumes:
+  mysql-data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge

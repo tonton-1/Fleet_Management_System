@@ -57,7 +57,7 @@ services:
   # Frontend Service (Vue.js with Vite)
   # This service is for development and runs the vite dev server
   frontend:
-    image: node:18-alpine
+    image: node:22-alpine
     container_name: frontend_app
     restart: always
     working_dir: /app

@@ -129,6 +129,20 @@ const logAudit = async (req, action, resourceType, resourceId, result, detail = 
 
 // POST /auth/login endpoint
 app.post('/auth/login', async (req, res) => {
+  /*
+    #swagger.tags = ['Auth']
+    #swagger.summary = 'User Login'
+    #swagger.description = 'Authenticate and receive a JWT access and refresh token.'
+    #swagger.parameters['body'] = {
+        in: 'body',
+        description: 'Credentials to login',
+        required: true,
+        schema: {
+            username: "admin",
+            password: "password123"
+        }
+    }
+  */
   const { username, password } = req.body
 
   if (!username || !password) {
@@ -170,6 +184,31 @@ app.post('/auth/login', async (req, res) => {
 
 // POST /vehicles endpoint
 app.post('/vehicles', authenticateToken, async (req, res) => {
+  /*
+    #swagger.tags = ['Vehicles']
+    #swagger.summary = 'Register New Vehicle'
+    #swagger.description = 'Add a new vehicle to the fleet management system.'
+    #swagger.parameters['body'] = {
+        in: 'body',
+        description: 'New vehicle payload',
+        required: true,
+        schema: {
+            license_plate: "กค 1234",
+            type: "TRUCK",
+            status: "IDLE",
+            driver_id: "drv_001",
+            context: {
+                brand: "Isuzu",
+                model: "D-Max",
+                year: "2022",
+                fuel_type: "DIESEL",
+                mileage_km: 15400,
+                last_service_km: 10000,
+                next_service_km: 20000
+            }
+        }
+    }
+  */
   try {
     const { id, license_plate, type, status = 'IDLE', driver_id, context = {} } = req.body
 
@@ -305,6 +344,14 @@ app.post('/vehicles', authenticateToken, async (req, res) => {
 
 // GET /dashboard endpoint
 app.get('/dashboard', authenticateToken, async (req, res) => {
+  /*
+    #swagger.tags = ['Dashboard']
+    #swagger.summary = 'Get Dashboard Overview Stats'
+    #swagger.description = 'Fetch real-time stats for fleet, trips, and maintenance alerts.'
+    #swagger.responses[200] = {
+        description: 'Dashboard stats payload'
+    }
+  */
   try {
     const [fleetStats] = await pool.query(`
       SELECT 
@@ -367,6 +414,11 @@ app.get('/dashboard', authenticateToken, async (req, res) => {
 
 // GET /charts/vehicles-by-status endpoint
 app.get('/charts/vehicles-by-status', authenticateToken, async (req, res) => {
+  /*
+    #swagger.tags = ['Charts']
+    #swagger.summary = 'Vehicle Status Chart'
+    #swagger.description = 'Counts of vehicles grouped by their operational status.'
+  */
   try {
     const [results] = await pool.query(`
       SELECT status, COUNT(*) as count
@@ -396,6 +448,11 @@ app.get('/charts/vehicles-by-status', authenticateToken, async (req, res) => {
 
 // GET /charts/trip-distance-trend endpoint
 app.get('/charts/trip-distance-trend', authenticateToken, async (req, res) => {
+  /*
+    #swagger.tags = ['Charts']
+    #swagger.summary = 'Trip Distance Trend'
+    #swagger.description = 'Distance covered over the last 7 days.'
+  */
   try {
     const [results] = await pool.query(`
       SELECT 
@@ -436,6 +493,11 @@ app.get('/charts/trip-distance-trend', authenticateToken, async (req, res) => {
 
 // GET /drivers endpoint
 app.get('/drivers', authenticateToken, async (req, res) => {
+  /*
+    #swagger.tags = ['Drivers']
+    #swagger.summary = 'List All Drivers'
+    #swagger.description = 'Fetch all registered drivers sorted by name.'
+  */
   try {
     const [rows] = await pool.query('SELECT * FROM drivers ORDER BY name ASC')
     res.json(rows)
@@ -447,6 +509,23 @@ app.get('/drivers', authenticateToken, async (req, res) => {
 
 // POST /drivers endpoint
 app.post('/drivers', authenticateToken, async (req, res) => {
+  /*
+    #swagger.tags = ['Drivers']
+    #swagger.summary = 'Register New Driver'
+    #swagger.description = 'Add a new driver to the system. Phone must be 10 digits and license must be 9 digits.'
+    #swagger.parameters['body'] = {
+        in: 'body',
+        description: 'New driver payload',
+        required: true,
+        schema: {
+            name: "Somchai Jaidee",
+            license_number: "123456789",
+            license_expires_at: "2030-12-31",
+            phone: "0812345678",
+            status: "ACTIVE"
+        }
+    }
+  */
   try {
     const { id, name, license_number, license_expires_at, phone, status = 'ACTIVE' } = req.body
 
@@ -525,6 +604,21 @@ app.post('/drivers', authenticateToken, async (req, res) => {
 
 // PATCH /drivers/:id endpoint - Full update (ADMIN only)
 app.patch('/drivers/:id', authenticateToken, requireRole('ADMIN'), async (req, res) => {
+  /*
+    #swagger.tags = ['Drivers']
+    #swagger.summary = 'Update Driver Info (Admin)'
+    #swagger.parameters['body'] = {
+        in: 'body',
+        description: 'Update fields',
+        schema: {
+            name: "Somchai Jaidee",
+            license_number: "123456789",
+            license_expires_at: "2030-12-31",
+            phone: "0812345678",
+            status: "INACTIVE"
+        }
+    }
+  */
   const { id } = req.params
   const { name, license_number, license_expires_at, phone, status } = req.body
 
@@ -572,6 +666,10 @@ app.patch('/drivers/:id', authenticateToken, requireRole('ADMIN'), async (req, r
 
 // DELETE /drivers/:id endpoint
 app.delete('/drivers/:id', authenticateToken, requireRole('ADMIN'), async (req, res) => {
+  /*
+    #swagger.tags = ['Drivers']
+    #swagger.summary = 'Delete Driver'
+  */
   const { id } = req.params
   try {
     const [driver] = await pool.query('SELECT id FROM drivers WHERE id = ?', [id])
@@ -596,6 +694,16 @@ app.delete('/drivers/:id', authenticateToken, requireRole('ADMIN'), async (req, 
 
 // POST /auth/refresh endpoint
 app.post('/auth/refresh', (req, res) => {
+  /*
+    #swagger.tags = ['Auth']
+    #swagger.summary = 'Refresh Access Token'
+    #swagger.parameters['body'] = {
+        in: 'body',
+        description: 'Previously acquired refresh token',
+        required: true,
+        schema: { refresh_token: "eyJhbGciOiJIUz..." }
+    }
+  */
   const { refresh_token } = req.body
   if (!refresh_token) return sendError(res, 401, 'UNAUTHORIZED', 'Refresh token required')
 
@@ -613,6 +721,16 @@ app.post('/auth/refresh', (req, res) => {
 
 // Helper route to create a test user
 app.post('/auth/register', async (req, res) => {
+  /*
+    #swagger.tags = ['Auth']
+    #swagger.summary = 'Register User'
+    #swagger.description = 'Helper route to register users (Test only).'
+    #swagger.parameters['body'] = {
+        in: 'body',
+        description: 'Desired user credentials',
+        schema: { username: "newadmin", password: "password123" }
+    }
+  */
   const { username, password } = req.body
   if (!username || !password)
     return sendError(res, 400, 'BAD_REQUEST', 'Missing username or password')
@@ -633,6 +751,11 @@ app.post('/auth/register', async (req, res) => {
 
 // GET /vehicles endpoint
 app.get('/vehicles', authenticateToken, async (req, res) => {
+  /*
+    #swagger.tags = ['Vehicles']
+    #swagger.summary = 'List All Vehicles'
+    #swagger.description = 'Fetch all fleet vehicles including current status and assigned drivers.'
+  */
   try {
     const query = `
             SELECT v.*, d.name AS driver_name 
@@ -652,6 +775,19 @@ app.get('/vehicles', authenticateToken, async (req, res) => {
 
 // PATCH /vehicles/:id endpoint (Req 2.2 & 2.5)
 app.patch('/vehicles/:id', authenticateToken, async (req, res) => {
+  /*
+    #swagger.tags = ['Vehicles']
+    #swagger.summary = 'Update Vehicle Status & Driver'
+    #swagger.description = 'Update vehicle operational status and driver assignment.'
+    #swagger.parameters['body'] = {
+        in: 'body',
+        description: 'Fields to update',
+        schema: {
+            status: "MAINTENANCE",
+            driver_id: "drv_002"
+        }
+    }
+  */
   const { id } = req.params
   const { status, driver_id } = req.body
 
@@ -713,8 +849,94 @@ app.patch('/vehicles/:id', authenticateToken, async (req, res) => {
   }
 })
 
+// PATCH /vehicles/:id/details endpoint (ADMIN only)
+app.patch('/vehicles/:id/details', authenticateToken, requireRole('ADMIN'), async (req, res) => {
+  /*
+    #swagger.tags = ['Vehicles']
+    #swagger.summary = 'Update Vehicle Info (Admin)'
+    #swagger.description = 'Update internal vehicle configuration (License, Type, etc).'
+    #swagger.parameters['body'] = {
+        in: 'body',
+        description: 'New configuration payload',
+        schema: {
+            license_plate: "ญข 9999",
+            type: "VAN",
+            brand: "Toyota",
+            model: "Commuter",
+            year: 2023,
+            fuel_type: "DIESEL",
+            mileage_km: 18000,
+            next_service_km: 25000
+        }
+    }
+  */
+  const { id } = req.params
+  const { license_plate, type, brand, model, year, fuel_type, mileage_km, next_service_km } = req.body
+
+  try {
+    const [vehicle] = await pool.query('SELECT * FROM vehicles WHERE id = ?', [id])
+    if (vehicle.length === 0) return sendError(res, 404, 'NOT_FOUND', 'Vehicle not found')
+
+    // Field Validation
+    const details = {}
+    if (!license_plate) details.license_plate = 'license_plate is required'
+    if (!type) details.type = 'type is required'
+
+    const validTypes = ['TRUCK', 'VAN', 'MOTORCYCLE', 'PICKUP']
+    if (type && !validTypes.includes(type)) {
+      details.type = `type must be one of: ${validTypes.join(', ')}`
+    }
+
+    const validFuelTypes = ['DIESEL', 'GASOLINE', 'ELECTRIC', 'HYBRID']
+    if (fuel_type && !validFuelTypes.includes(fuel_type)) {
+      details.fuel_type = `fuel_type must be one of: ${validFuelTypes.join(', ')}`
+    }
+
+    if (year !== null && year !== undefined && year !== '' && isNaN(parseInt(year))) details.year = 'year must be a valid number'
+    if (mileage_km !== null && mileage_km !== undefined && mileage_km !== '' && isNaN(parseInt(mileage_km))) details.mileage_km = 'mileage_km must be a valid number'
+    if (next_service_km !== null && next_service_km !== undefined && next_service_km !== '' && isNaN(parseInt(next_service_km))) details.next_service_km = 'next_service_km must be a valid number'
+
+    if (Object.keys(details).length > 0) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'Invalid data', details)
+    }
+
+    const query = `
+      UPDATE vehicles
+      SET license_plate = ?, type = ?, brand = ?, model = ?, 
+          year = ?, fuel_type = ?, mileage_km = ?, next_service_km = ?, updated_at = NOW()
+      WHERE id = ?
+    `
+    const values = [
+      license_plate, 
+      type, 
+      brand || null, 
+      model || null, 
+      year ? parseInt(year) : null, 
+      fuel_type || null, 
+      mileage_km !== '' ? parseInt(mileage_km) || 0 : 0, 
+      next_service_km ? parseInt(next_service_km) : null, 
+      id
+    ]
+
+    await pool.query(query, values)
+    await logAudit(req, 'UPDATE_VEHICLE_DETAILS', 'VEHICLE', id, 'SUCCESS', { license_plate, type })
+
+    res.json({ message: 'Vehicle details updated successfully' })
+  } catch (error) {
+    console.error(error)
+    if (error.code === 'ER_DUP_ENTRY') {
+      return sendError(res, 409, 'CONFLICT', 'License plate already exists', { license_plate })
+    }
+    return sendError(res, 500, 'INTERNAL_SERVER_ERROR', 'Failed to update vehicle details')
+  }
+})
+
 // DELETE /vehicles/:id endpoint
 app.delete('/vehicles/:id', authenticateToken, requireRole('ADMIN'), async (req, res) => {
+  /*
+    #swagger.tags = ['Vehicles']
+    #swagger.summary = 'Delete Vehicle'
+  */
   const { id } = req.params
   try {
     const [vehicle] = await pool.query('SELECT id FROM vehicles WHERE id = ?', [id])
@@ -751,6 +973,11 @@ app.delete('/vehicles/:id', authenticateToken, requireRole('ADMIN'), async (req,
 
 // GET /vehicles/:id/history endpoint
 app.get('/vehicles/:id/history', authenticateToken, async (req, res) => {
+  /*
+    #swagger.tags = ['Vehicles']
+    #swagger.summary = 'Vehicle Use History'
+    #swagger.description = 'Fetch prior trips and maintenance logs for this specific vehicle.'
+  */
   try {
     const { id } = req.params
 
@@ -801,6 +1028,11 @@ app.get('/vehicles/:id/history', authenticateToken, async (req, res) => {
 // ==========================================
 
 app.get('/maintenance', authenticateToken, async (req, res) => {
+  /*
+    #swagger.tags = ['Maintenance']
+    #swagger.summary = 'Get Maintenance Records'
+    #swagger.description = 'Fetch all maintenance records combined with vehicle details.'
+  */
   try {
     const query = `
       SELECT 
@@ -825,6 +1057,11 @@ app.get('/maintenance', authenticateToken, async (req, res) => {
 
 // GET /trips endpoint
 app.get('/trips', authenticateToken, async (req, res) => {
+  /*
+    #swagger.tags = ['Trips']
+    #swagger.summary = 'List All Trips'
+    #swagger.description = 'Fetch a list of all historical and active trips.'
+  */
   try {
     const query = `
       SELECT 
@@ -848,6 +1085,11 @@ app.get('/trips', authenticateToken, async (req, res) => {
 
 // GET /trips/:id endpoint (Fetch trip details + checkpoints)
 app.get('/trips/:id', authenticateToken, async (req, res) => {
+  /*
+    #swagger.tags = ['Trips']
+    #swagger.summary = 'Get Trip Details'
+    #swagger.description = 'Fetch specific trip details along with its checkpoints.'
+  */
   const { id } = req.params
   try {
     const tripQuery = `
@@ -888,6 +1130,29 @@ app.get('/trips/:id', authenticateToken, async (req, res) => {
 
 // POST /trips endpoint (Create new trip and checkpoints)
 app.post('/trips', authenticateToken, requireRole('ADMIN', 'DISPATCHER'), async (req, res) => {
+  /*
+    #swagger.tags = ['Trips']
+    #swagger.summary = 'Create New Trip'
+    #swagger.description = 'Dispatch a new trip with a specified vehicle, driver, and checkpoints.'
+    #swagger.parameters['body'] = {
+        in: 'body',
+        description: 'New trip payload',
+        required: true,
+        schema: {
+            vehicle_id: "veh_001",
+            driver_id: "drv_001",
+            origin: "Bangkok",
+            destination: "Chiang Mai",
+            distance_km: 700,
+            cargo_type: "GENERAL",
+            cargo_weight_kg: 5000,
+            checkpoints: [
+                { location_name: "Ayutthaya", latitude: 14.35, longitude: 100.56, purpose: "Rest" },
+                { location_name: "Nakhon Sawan", latitude: 15.69, longitude: 100.12, purpose: "Refuel" }
+            ]
+        }
+    }
+  */
   const connection = await pool.getConnection() // Use connection for Transaction
 
   try {
@@ -1051,6 +1316,17 @@ app.patch(
   authenticateToken,
   requireRole('ADMIN', 'DISPATCHER'),
   async (req, res) => {
+    /*
+      #swagger.tags = ['Trips']
+      #swagger.summary = 'Update Trip Status'
+      #swagger.description = 'Change trip execution status (e.g. SCHEDULED -> IN_PROGRESS).'
+      #swagger.parameters['body'] = {
+          in: 'body',
+          description: 'Trip status change',
+          required: true,
+          schema: { status: "IN_PROGRESS" }
+      }
+    */
     const { id } = req.params
     const { status } = req.body
     const validStatuses = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']
@@ -1229,6 +1505,11 @@ app.patch(
 
 // DELETE /trips/:id endpoint (ADMIN only)
 app.delete('/trips/:id', authenticateToken, requireRole('ADMIN'), async (req, res) => {
+  /*
+    #swagger.tags = ['Trips']
+    #swagger.summary = 'Delete Trip'
+    #swagger.description = 'Remove trip and its associated checkpoints.'
+  */
   const { id } = req.params
   try {
     const [trip] = await pool.query('SELECT id, status FROM trips WHERE id = ?', [id])
@@ -1255,6 +1536,20 @@ app.delete('/trips/:id', authenticateToken, requireRole('ADMIN'), async (req, re
 
 // PATCH /checkpoints/:id/status endpoint (Update Checkpoint Status)
 app.patch('/checkpoints/:id/status', authenticateToken, async (req, res) => {
+  /*
+    #swagger.tags = ['Checkpoints']
+    #swagger.summary = 'Update Checkpoint Status'
+    #swagger.description = 'Update sequential status of a trip checkpoint (PENDING -> ARRIVED -> DEPARTED).'
+    #swagger.parameters['body'] = {
+        in: 'body',
+        description: 'Checkpoint status updates',
+        required: true,
+        schema: {
+            status: "ARRIVED",
+            notes: "Driver took a 30m break."
+        }
+    }
+  */
   const { id } = req.params
   const { status, notes } = req.body
   const validStatuses = ['PENDING', 'ARRIVED', 'DEPARTED', 'SKIPPED']
@@ -1384,6 +1679,11 @@ async function startAlertEngine() {
 }
 
 app.get('/alerts', authenticateToken, async (req, res) => {
+  /*
+    #swagger.tags = ['System']
+    #swagger.summary = 'Get Alerts'
+    #swagger.description = 'Fetch system-generated alerts (WARNING/CRITICAL).'
+  */
   try {
     const { severity, resource_type } = req.query
 
@@ -1412,6 +1712,11 @@ app.get('/alerts', authenticateToken, async (req, res) => {
 
 // GET /audit-logs endpoint (Read-only, Append-only)
 app.get('/audit-logs', authenticateToken, async (req, res) => {
+  /*
+    #swagger.tags = ['System']
+    #swagger.summary = 'Get Audit Logs'
+    #swagger.description = 'Fetch append-only security and operational audit logs.'
+  */
   try {
     const { action, resource_type, start_date, end_date, limit = 100 } = req.query
 

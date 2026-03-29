@@ -15,4 +15,10 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  server: {
+    watch: {
+      usePolling: true,
+      interval: 1000, // Check for file modifications every second
+    }
+  }
 })

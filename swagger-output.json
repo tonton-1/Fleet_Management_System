@@ -21,19 +21,27 @@
   "paths": {
     "/auth/login": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "User Login",
+        "description": "Authenticate and receive a JWT access and refresh token.",
         "parameters": [
           {
             "name": "body",
             "in": "body",
+            "description": "Credentials to login",
+            "required": true,
             "schema": {
               "type": "object",
               "properties": {
                 "username": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "admin"
                 },
                 "password": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "password123"
                 }
               }
             }
@@ -48,7 +56,11 @@
     },
     "/vehicles": {
       "post": {
-        "description": "",
+        "tags": [
+          "Vehicles"
+        ],
+        "summary": "Register New Vehicle",
+        "description": "Add a new vehicle to the fleet management system.",
         "parameters": [
           {
             "name": "authorization",
@@ -58,14 +70,59 @@
           {
             "name": "body",
             "in": "body",
+            "description": "New vehicle payload",
+            "required": true,
             "schema": {
               "type": "object",
               "properties": {
                 "license_plate": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "กค 1234"
+                },
+                "type": {
+                  "type": "string",
+                  "example": "TRUCK"
+                },
+                "status": {
+                  "type": "string",
+                  "example": "IDLE"
                 },
                 "driver_id": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "drv_001"
+                },
+                "context": {
+                  "type": "object",
+                  "properties": {
+                    "brand": {
+                      "type": "string",
+                      "example": "Isuzu"
+                    },
+                    "model": {
+                      "type": "string",
+                      "example": "D-Max"
+                    },
+                    "year": {
+                      "type": "string",
+                      "example": "2022"
+                    },
+                    "fuel_type": {
+                      "type": "string",
+                      "example": "DIESEL"
+                    },
+                    "mileage_km": {
+                      "type": "number",
+                      "example": 15400
+                    },
+                    "last_service_km": {
+                      "type": "number",
+                      "example": 10000
+                    },
+                    "next_service_km": {
+                      "type": "number",
+                      "example": 20000
+                    }
+                  }
                 }
               }
             }
@@ -78,7 +135,11 @@
         }
       },
       "get": {
-        "description": "",
+        "tags": [
+          "Vehicles"
+        ],
+        "summary": "List All Vehicles",
+        "description": "Fetch all fleet vehicles including current status and assigned drivers.",
         "parameters": [
           {
             "name": "authorization",
@@ -95,7 +156,11 @@
     },
     "/dashboard": {
       "get": {
-        "description": "",
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get Dashboard Overview Stats",
+        "description": "Fetch real-time stats for fleet, trips, and maintenance alerts.",
         "parameters": [
           {
             "name": "authorization",
@@ -105,14 +170,18 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "Dashboard stats payload"
           }
         }
       }
     },
     "/charts/vehicles-by-status": {
       "get": {
-        "description": "",
+        "tags": [
+          "Charts"
+        ],
+        "summary": "Vehicle Status Chart",
+        "description": "Counts of vehicles grouped by their operational status.",
         "parameters": [
           {
             "name": "authorization",
@@ -129,7 +198,11 @@
     },
     "/charts/trip-distance-trend": {
       "get": {
-        "description": "",
+        "tags": [
+          "Charts"
+        ],
+        "summary": "Trip Distance Trend",
+        "description": "Distance covered over the last 7 days.",
         "parameters": [
           {
             "name": "authorization",
@@ -146,7 +219,11 @@
     },
     "/drivers": {
       "get": {
-        "description": "",
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "List All Drivers",
+        "description": "Fetch all registered drivers sorted by name.",
         "parameters": [
           {
             "name": "authorization",
@@ -161,7 +238,11 @@
         }
       },
       "post": {
-        "description": "",
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Register New Driver",
+        "description": "Add a new driver to the system. Phone must be 10 digits and license must be 9 digits.",
         "parameters": [
           {
             "name": "authorization",
@@ -171,26 +252,30 @@
           {
             "name": "body",
             "in": "body",
+            "description": "New driver payload",
+            "required": true,
             "schema": {
               "type": "object",
               "properties": {
-                "license_number": {
-                  "example": "any"
-                },
-                "id": {
-                  "example": "any"
-                },
                 "name": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "Somchai Jaidee"
+                },
+                "license_number": {
+                  "type": "string",
+                  "example": "123456789"
                 },
                 "license_expires_at": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "2030-12-31"
                 },
                 "phone": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "0812345678"
                 },
                 "status": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "ACTIVE"
                 }
               }
             }
@@ -205,6 +290,10 @@
     },
     "/drivers/{id}": {
       "patch": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Update Driver Info (Admin)",
         "description": "",
         "parameters": [
           {
@@ -221,23 +310,29 @@
           {
             "name": "body",
             "in": "body",
+            "description": "Update fields",
             "schema": {
               "type": "object",
               "properties": {
                 "name": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "Somchai Jaidee"
                 },
                 "license_number": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "123456789"
                 },
                 "license_expires_at": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "2030-12-31"
                 },
                 "phone": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "0812345678"
                 },
                 "status": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "INACTIVE"
                 }
               }
             }
@@ -250,6 +345,10 @@
         }
       },
       "delete": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Delete Driver",
         "description": "",
         "parameters": [
           {
@@ -273,16 +372,23 @@
     },
     "/auth/refresh": {
       "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Refresh Access Token",
         "description": "",
         "parameters": [
           {
             "name": "body",
             "in": "body",
+            "description": "Previously acquired refresh token",
+            "required": true,
             "schema": {
               "type": "object",
               "properties": {
                 "refresh_token": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "eyJhbGciOiJIUz..."
                 }
               }
             }
@@ -297,19 +403,26 @@
     },
     "/auth/register": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Register User",
+        "description": "Helper route to register users (Test only).",
         "parameters": [
           {
             "name": "body",
             "in": "body",
+            "description": "Desired user credentials",
             "schema": {
               "type": "object",
               "properties": {
                 "username": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "newadmin"
                 },
                 "password": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "password123"
                 }
               }
             }
@@ -324,7 +437,11 @@
     },
     "/vehicles/{id}": {
       "patch": {
-        "description": "",
+        "tags": [
+          "Vehicles"
+        ],
+        "summary": "Update Vehicle Status & Driver",
+        "description": "Update vehicle operational status and driver assignment.",
         "parameters": [
           {
             "name": "id",
@@ -340,14 +457,17 @@
           {
             "name": "body",
             "in": "body",
+            "description": "Fields to update",
             "schema": {
               "type": "object",
               "properties": {
                 "status": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "MAINTENANCE"
                 },
                 "driver_id": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "drv_002"
                 }
               }
             }
@@ -360,6 +480,10 @@
         }
       },
       "delete": {
+        "tags": [
+          "Vehicles"
+        ],
+        "summary": "Delete Vehicle",
         "description": "",
         "parameters": [
           {
@@ -381,9 +505,82 @@
         }
       }
     },
+    "/vehicles/{id}/details": {
+      "patch": {
+        "tags": [
+          "Vehicles"
+        ],
+        "summary": "Update Vehicle Info (Admin)",
+        "description": "Update internal vehicle configuration (License, Type, etc).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "New configuration payload",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "license_plate": {
+                  "type": "string",
+                  "example": "ญข 9999"
+                },
+                "type": {
+                  "type": "string",
+                  "example": "VAN"
+                },
+                "brand": {
+                  "type": "string",
+                  "example": "Toyota"
+                },
+                "model": {
+                  "type": "string",
+                  "example": "Commuter"
+                },
+                "year": {
+                  "type": "number",
+                  "example": 2023
+                },
+                "fuel_type": {
+                  "type": "string",
+                  "example": "DIESEL"
+                },
+                "mileage_km": {
+                  "type": "number",
+                  "example": 18000
+                },
+                "next_service_km": {
+                  "type": "number",
+                  "example": 25000
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/vehicles/{id}/history": {
       "get": {
-        "description": "",
+        "tags": [
+          "Vehicles"
+        ],
+        "summary": "Vehicle Use History",
+        "description": "Fetch prior trips and maintenance logs for this specific vehicle.",
         "parameters": [
           {
             "name": "id",
@@ -406,7 +603,11 @@
     },
     "/maintenance": {
       "get": {
-        "description": "",
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Get Maintenance Records",
+        "description": "Fetch all maintenance records combined with vehicle details.",
         "parameters": [
           {
             "name": "authorization",
@@ -423,7 +624,11 @@
     },
     "/trips": {
       "get": {
-        "description": "",
+        "tags": [
+          "Trips"
+        ],
+        "summary": "List All Trips",
+        "description": "Fetch a list of all historical and active trips.",
         "parameters": [
           {
             "name": "authorization",
@@ -438,7 +643,11 @@
         }
       },
       "post": {
-        "description": "",
+        "tags": [
+          "Trips"
+        ],
+        "summary": "Create New Trip",
+        "description": "Dispatch a new trip with a specified vehicle, driver, and checkpoints.",
         "parameters": [
           {
             "name": "authorization",
@@ -448,35 +657,62 @@
           {
             "name": "body",
             "in": "body",
+            "description": "New trip payload",
+            "required": true,
             "schema": {
               "type": "object",
               "properties": {
-                "id": {
-                  "example": "any"
-                },
                 "vehicle_id": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "veh_001"
                 },
                 "driver_id": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "drv_001"
                 },
                 "origin": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "Bangkok"
                 },
                 "destination": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "Chiang Mai"
                 },
                 "distance_km": {
-                  "example": "any"
+                  "type": "number",
+                  "example": 700
                 },
                 "cargo_type": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "GENERAL"
                 },
                 "cargo_weight_kg": {
-                  "example": "any"
+                  "type": "number",
+                  "example": 5000
                 },
                 "checkpoints": {
-                  "example": "any"
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "location_name": {
+                        "type": "string",
+                        "example": "Nakhon Sawan"
+                      },
+                      "latitude": {
+                        "type": "number",
+                        "example": 15.69
+                      },
+                      "longitude": {
+                        "type": "number",
+                        "example": 100.12
+                      },
+                      "purpose": {
+                        "type": "string",
+                        "example": "Refuel"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -491,7 +727,11 @@
     },
     "/trips/{id}": {
       "get": {
-        "description": "",
+        "tags": [
+          "Trips"
+        ],
+        "summary": "Get Trip Details",
+        "description": "Fetch specific trip details along with its checkpoints.",
         "parameters": [
           {
             "name": "id",
@@ -512,7 +752,11 @@
         }
       },
       "delete": {
-        "description": "",
+        "tags": [
+          "Trips"
+        ],
+        "summary": "Delete Trip",
+        "description": "Remove trip and its associated checkpoints.",
         "parameters": [
           {
             "name": "id",
@@ -535,7 +779,11 @@
     },
     "/trips/{id}/status": {
       "patch": {
-        "description": "",
+        "tags": [
+          "Trips"
+        ],
+        "summary": "Update Trip Status",
+        "description": "Change trip execution status (e.g. SCHEDULED -> IN_PROGRESS).",
         "parameters": [
           {
             "name": "id",
@@ -551,11 +799,14 @@
           {
             "name": "body",
             "in": "body",
+            "description": "Trip status change",
+            "required": true,
             "schema": {
               "type": "object",
               "properties": {
                 "status": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "IN_PROGRESS"
                 }
               }
             }
@@ -570,7 +821,11 @@
     },
     "/checkpoints/{id}/status": {
       "patch": {
-        "description": "",
+        "tags": [
+          "Checkpoints"
+        ],
+        "summary": "Update Checkpoint Status",
+        "description": "Update sequential status of a trip checkpoint (PENDING -> ARRIVED -> DEPARTED).",
         "parameters": [
           {
             "name": "id",
@@ -586,14 +841,18 @@
           {
             "name": "body",
             "in": "body",
+            "description": "Checkpoint status updates",
+            "required": true,
             "schema": {
               "type": "object",
               "properties": {
                 "status": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "ARRIVED"
                 },
                 "notes": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "Driver took a 30m break."
                 }
               }
             }
@@ -608,7 +867,11 @@
     },
     "/alerts": {
       "get": {
-        "description": "",
+        "tags": [
+          "System"
+        ],
+        "summary": "Get Alerts",
+        "description": "Fetch system-generated alerts (WARNING/CRITICAL).",
         "parameters": [
           {
             "name": "severity",
@@ -635,7 +898,11 @@
     },
     "/audit-logs": {
       "get": {
-        "description": "",
+        "tags": [
+          "System"
+        ],
+        "summary": "Get Audit Logs",
+        "description": "Fetch append-only security and operational audit logs.",
         "parameters": [
           {
             "name": "user_id",

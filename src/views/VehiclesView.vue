@@ -57,15 +57,32 @@ const filteredVehicles = computed(() => {
   })
 })
 
-// สถานะของ Modal แก้ไข
+// สถานะของ Modal แก้ไขสถานะ/คนขับ
 const isEditModalOpen = ref(false)
-const isSaving = ref(false)
 const editForm = ref({
   id: '',
   license_plate: '',
   status: '',
   driver_id: '',
 })
+
+// สถานะของ Modal แก้ไขรายละเอียดรถ (Admin Only)
+const isEditDetailsModalOpen = ref(false)
+const editDetailsForm = ref({
+  id: '',
+  license_plate: '',
+  type: '',
+  brand: '',
+  model: '',
+  year: '',
+  fuel_type: '',
+  mileage_km: 0,
+  next_service_km: '',
+})
+
+// Validation State
+const fieldErrors = ref({})
+const isSaving = ref(false)
 
 // สถานะของ Modal เพิ่ม
 const isAddModalOpen = ref(false)
@@ -99,6 +116,7 @@ const openAddModal = () => {
       next_service_km: '',
     },
   }
+  fieldErrors.value = {}
   isAddModalOpen.value = true
 }
 
@@ -109,6 +127,8 @@ const closeAddModal = () => {
 const saveNewVehicle = async () => {
   try {
     isSaving.value = true
+    fieldErrors.value = {}
+
     await apiClient.post('/vehicles', addForm.value)
     closeAddModal()
     await fetchVehicles()
@@ -121,13 +141,19 @@ const saveNewVehicle = async () => {
       confirmButtonColor: '#3b82f6',
     })
   } catch (error) {
-    Swal.fire({
-      title: 'ผิดพลาด',
-      text: error.response?.data?.error?.message || error.message,
-      icon: 'error',
-      confirmButtonText: 'ตกลง',
-      confirmButtonColor: '#ef4444',
-    })
+     console.log('🚨 API Error Response:', error.response?.data)
+    const errorResponse = error.response?.data?.error
+    if (errorResponse && errorResponse.code === 'VALIDATION_ERROR' && errorResponse.details) {
+      fieldErrors.value = errorResponse.details
+    } else {
+      Swal.fire({
+        title: 'ผิดพลาด',
+        text: errorResponse?.message || error.message,
+        icon: 'error',
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#ef4444',
+      })
+    }
   } finally {
     isSaving.value = false
   }
@@ -243,7 +269,7 @@ const saveVehicle = async () => {
 
     Swal.fire({
       title: 'อัปเดตสำเร็จ!',
-      text: 'บันทึกข้อมูลยานพาหนะเรียบร้อยแล้ว',
+      text: 'บันทึกข้อมูลสถานะและคนขับเรียบร้อยแล้ว',
       icon: 'success',
       confirmButtonText: 'ตกลง',
       confirmButtonColor: '#3b82f6',
@@ -256,7 +282,65 @@ const saveVehicle = async () => {
       icon: 'error',
       confirmButtonColor: '#ef4444',
     })
-    console.error('Failed to update vehicle:', error)
+    console.error('Failed to update vehicle status/driver:', error)
+  } finally {
+    isSaving.value = false
+  }
+}
+
+// ฟังก์ชันสำหรับจัดการ Modal แก้ไขรายละเอียดแบบเต็มรูปแบบ (Admin)
+const openEditDetailsModal = (vehicle) => {
+  editDetailsForm.value = {
+    id: vehicle.id,
+    license_plate: vehicle.license_plate,
+    type: vehicle.type || 'TRUCK',
+    brand: vehicle.brand || '',
+    model: vehicle.model || '',
+    year: vehicle.year || '',
+    fuel_type: vehicle.fuel_type || 'DIESEL',
+    mileage_km: vehicle.mileage_km || 0,
+    next_service_km: vehicle.next_service_km || '',
+  }
+  fieldErrors.value = {}
+  isEditDetailsModalOpen.value = true
+}
+
+const closeEditDetailsModal = () => {
+  isEditDetailsModalOpen.value = false
+}
+
+const saveVehicleDetails = async () => {
+  try {
+    isSaving.value = true
+    fieldErrors.value = {}
+    
+    await apiClient.patch(`/vehicles/${editDetailsForm.value.id}/details`, editDetailsForm.value)
+    
+    await fetchVehicles()
+    closeEditDetailsModal()
+    
+    Swal.fire({
+      title: 'อัปเดตสำเร็จ!',
+      text: 'แก้ไขรายละเอียดข้อมูลรถเรียบร้อยแล้ว',
+      icon: 'success',
+      confirmButtonText: 'ตกลง',
+      confirmButtonColor: '#3b82f6',
+      timer: 1500,
+    })
+  } catch (error) {
+    console.log('🚨 API Error Response:', error.response?.data)
+    const errorResponse = error.response?.data?.error
+    if (errorResponse && errorResponse.code === 'VALIDATION_ERROR' && errorResponse.details) {
+      fieldErrors.value = errorResponse.details
+    } else {
+      Swal.fire({
+        title: 'เกิดข้อผิดพลาด',
+        text: errorResponse?.message || error.message,
+        icon: 'error',
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#ef4444',
+      })
+    }
   } finally {
     isSaving.value = false
   }
@@ -343,7 +427,7 @@ watch(
       <table>
         <thead>
           <tr>
-            <th>ยานพาหนะ</th>
+            <th>ป้ายทะเบียน</th>
             <th>ประเภท</th>
             <th>สถานะ</th>
             <th>คนขับ</th>
@@ -391,7 +475,19 @@ watch(
                     d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
                   />
                 </svg>
-                แก้ไข
+                สถานะ
+              </button>
+              <button v-if="isAdmin" @click="openEditDetailsModal(vehicle)" class="btn-edit-details">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                </svg>
+                รายละเอียด
               </button>
               <button
                 v-if="isAdmin"
@@ -419,7 +515,7 @@ watch(
       </table>
     </div>
 
-    <!-- Modal สำหรับแก้ไขข้อมูลรถ -->
+    <!-- Modal สำหรับแก้ไขสถานะ/คนขับ -->
     <div v-if="isEditModalOpen" class="modal-overlay">
       <div class="modal-content">
         <h3>Edit Vehicle ({{ editForm.license_plate }})</h3>
@@ -455,6 +551,95 @@ watch(
       </div>
     </div>
 
+    <!-- Modal สำหรับแก้ไขรายละเอียดแบบเต็มสูบ (Admin Only) -->
+    <div v-if="isEditDetailsModalOpen" class="modal-overlay">
+      <div class="modal-content modal-lg">
+        <h3>แก้ไขรายละเอียดรถ ({{ editDetailsForm.license_plate }})</h3>
+        <form @submit.prevent="saveVehicleDetails">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="edit-license">ป้ายทะเบียน <span class="required">*</span></label>
+              <input
+                id="edit-license"
+                v-model="editDetailsForm.license_plate"
+                :class="{ 'has-error': fieldErrors.license_plate }"
+              />
+              <span v-if="fieldErrors.license_plate" class="error-text">{{ fieldErrors.license_plate }}</span>
+            </div>
+
+            <div class="form-group">
+              <label for="edit-type">ประเภท <span class="required">*</span></label>
+              <select id="edit-type" v-model="editDetailsForm.type" :class="{ 'has-error': fieldErrors.type }">
+                <option value="TRUCK">TRUCK</option>
+                <option value="VAN">VAN</option>
+                <option value="MOTORCYCLE">MOTORCYCLE</option>
+                <option value="PICKUP">PICKUP</option>
+              </select>
+              <span v-if="fieldErrors.type" class="error-text">{{ fieldErrors.type }}</span>
+            </div>
+
+            <div class="form-group">
+              <label for="edit-brand">ยี่ห้อ</label>
+              <input id="edit-brand" v-model="editDetailsForm.brand" :class="{ 'has-error': fieldErrors.brand }" />
+              <span v-if="fieldErrors.brand" class="error-text">{{ fieldErrors.brand }}</span>
+            </div>
+
+            <div class="form-group">
+              <label for="edit-model">รุ่น</label>
+              <input id="edit-model" v-model="editDetailsForm.model" :class="{ 'has-error': fieldErrors.model }" />
+              <span v-if="fieldErrors.model" class="error-text">{{ fieldErrors.model }}</span>
+            </div>
+
+            <div class="form-group">
+              <label for="edit-year">ปี</label>
+              <input
+                id="edit-year"
+                v-model="editDetailsForm.year"
+                type="number"
+                :class="{ 'has-error': fieldErrors.year }"
+              />
+              <span v-if="fieldErrors.year" class="error-text">{{ fieldErrors.year }}</span>
+            </div>
+
+            <div class="form-group">
+              <label for="edit-fuel">ประเภทน้ำมัน</label>
+              <select id="edit-fuel" v-model="editDetailsForm.fuel_type" :class="{ 'has-error': fieldErrors.fuel_type }">
+                <option value="DIESEL">DIESEL</option>
+                <option value="GASOLINE">GASOLINE</option>
+                <option value="ELECTRIC">ELECTRIC</option>
+                <option value="HYBRID">HYBRID</option>
+              </select>
+              <span v-if="fieldErrors.fuel_type" class="error-text">{{ fieldErrors.fuel_type }}</span>
+            </div>
+
+            <div class="form-group">
+              <label for="edit-mileage">เลขไมล์ (กม.)</label>
+              <input id="edit-mileage" v-model.number="editDetailsForm.mileage_km" type="number" :class="{ 'has-error': fieldErrors.mileage_km }" />
+              <span v-if="fieldErrors.mileage_km" class="error-text">{{ fieldErrors.mileage_km }}</span>
+            </div>
+
+            <div class="form-group">
+              <label for="edit-next-service">กำหนดรับบริการครั้งต่อไป (กม.)</label>
+              <input
+                id="edit-next-service"
+                v-model.number="editDetailsForm.next_service_km"
+                type="number"
+                :class="{ 'has-error': fieldErrors.next_service_km }"
+              />
+              <span v-if="fieldErrors.next_service_km" class="error-text">{{ fieldErrors.next_service_km }}</span>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" @click="closeEditDetailsModal" class="btn-cancel">ยกเลิก</button>
+            <button type="submit" class="btn-save" :disabled="isSaving">
+              {{ isSaving ? 'กำลังบันทึก...' : 'บันทึก' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Modal สำหรับเพิ่มยานพาหนะใหม่ -->
     <div v-if="isAddModalOpen" class="modal-overlay">
       <div class="modal-content modal-lg">
@@ -462,53 +647,59 @@ watch(
         <form @submit.prevent="saveNewVehicle">
           <div class="form-grid">
             <div class="form-group">
-              <label for="add-license">ป้ายทะเบียน *</label>
+              <label for="add-license">ป้ายทะเบียน <span class="required">*</span></label>
               <input
                 id="add-license"
                 v-model="addForm.license_plate"
-                required
+                :class="{ 'has-error': fieldErrors.license_plate }"
                 placeholder="เช่น กท-1234"
               />
+              <span v-if="fieldErrors.license_plate" class="error-text">{{ fieldErrors.license_plate }}</span>
             </div>
 
             <div class="form-group">
-              <label for="add-type">ประเภท *</label>
-              <select id="add-type" v-model="addForm.type" required>
+              <label for="add-type">ประเภท <span class="required">*</span></label>
+              <select id="add-type" v-model="addForm.type" :class="{ 'has-error': fieldErrors.type }">
                 <option value="TRUCK">TRUCK</option>
                 <option value="VAN">VAN</option>
                 <option value="MOTORCYCLE">MOTORCYCLE</option>
                 <option value="PICKUP">PICKUP</option>
               </select>
+              <span v-if="fieldErrors.type" class="error-text">{{ fieldErrors.type }}</span>
             </div>
 
             <div class="form-group">
               <label for="add-status">สถานะ</label>
-              <select id="add-status" v-model="addForm.status">
+              <select id="add-status" v-model="addForm.status" :class="{ 'has-error': fieldErrors.status }">
                 <option value="IDLE">IDLE</option>
                 <option value="ACTIVE">ACTIVE</option>
                 <option value="MAINTENANCE">MAINTENANCE</option>
                 <option value="RETIRED">RETIRED</option>
               </select>
+              <span v-if="fieldErrors.status" class="error-text">{{ fieldErrors.status }}</span>
             </div>
 
             <div class="form-group">
               <label for="add-driver">มอบหมายคนขับ</label>
-              <select id="add-driver" v-model="addForm.driver_id">
+              <select id="add-driver" v-model="addForm.driver_id" :class="{ 'has-error': fieldErrors.driver_id }">
                 <option value="">-- ไม่มีคนขับ --</option>
                 <option v-for="driver in drivers" :key="driver.id" :value="driver.id">
                   {{ driver.name }} ({{ driver.license_number }})
                 </option>
               </select>
+              <span v-if="fieldErrors.driver_id" class="error-text">{{ fieldErrors.driver_id }}</span>
             </div>
 
             <div class="form-group">
               <label for="add-brand">ยี่ห้อ</label>
-              <input id="add-brand" v-model="addForm.context.brand" placeholder="เช่น Isuzu" />
+              <input id="add-brand" v-model="addForm.context.brand" :class="{ 'has-error': fieldErrors.brand }" placeholder="เช่น Isuzu" />
+              <span v-if="fieldErrors.brand" class="error-text">{{ fieldErrors.brand }}</span>
             </div>
 
             <div class="form-group">
               <label for="add-model">รุ่น</label>
-              <input id="add-model" v-model="addForm.context.model" placeholder="เช่น D-Max" />
+              <input id="add-model" v-model="addForm.context.model" :class="{ 'has-error': fieldErrors.model }" placeholder="เช่น D-Max" />
+              <span v-if="fieldErrors.model" class="error-text">{{ fieldErrors.model }}</span>
             </div>
 
             <div class="form-group">
@@ -517,23 +708,27 @@ watch(
                 id="add-year"
                 v-model="addForm.context.year"
                 type="number"
+                :class="{ 'has-error': fieldErrors.year }"
                 placeholder="เช่น 2024"
               />
+              <span v-if="fieldErrors.year" class="error-text">{{ fieldErrors.year }}</span>
             </div>
 
             <div class="form-group">
               <label for="add-fuel">ประเภทน้ำมัน</label>
-              <select id="add-fuel" v-model="addForm.context.fuel_type">
+              <select id="add-fuel" v-model="addForm.context.fuel_type" :class="{ 'has-error': fieldErrors.fuel_type }">
                 <option value="DIESEL">DIESEL</option>
                 <option value="GASOLINE">GASOLINE</option>
                 <option value="ELECTRIC">ELECTRIC</option>
                 <option value="HYBRID">HYBRID</option>
               </select>
+              <span v-if="fieldErrors.fuel_type" class="error-text">{{ fieldErrors.fuel_type }}</span>
             </div>
 
             <div class="form-group">
               <label for="add-mileage">เลขไมล์ (กม.)</label>
-              <input id="add-mileage" v-model.number="addForm.context.mileage_km" type="number" />
+              <input id="add-mileage" v-model.number="addForm.context.mileage_km" type="number" :class="{ 'has-error': fieldErrors.mileage_km }" />
+              <span v-if="fieldErrors.mileage_km" class="error-text">{{ fieldErrors.mileage_km }}</span>
             </div>
 
             <div class="form-group">
@@ -542,8 +737,10 @@ watch(
                 id="add-next-service"
                 v-model.number="addForm.context.next_service_km"
                 type="number"
+                :class="{ 'has-error': fieldErrors.next_service_km }"
                 placeholder="เช่น 50000"
               />
+              <span v-if="fieldErrors.next_service_km" class="error-text">{{ fieldErrors.next_service_km }}</span>
             </div>
           </div>
 
@@ -643,6 +840,23 @@ h2 {
   background: white;
   border-color: #3b82f6;
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.has-error {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2 !important;
+}
+
+.error-text {
+  display: block;
+  font-size: 12px;
+  color: #ef4444;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.required {
+  color: #ef4444;
 }
 
 .table-container {
@@ -789,6 +1003,7 @@ tbody tr:last-child td {
 }
 
 .btn-edit,
+.btn-edit-details,
 .btn-delete {
   display: inline-flex;
   align-items: center;
@@ -816,6 +1031,16 @@ tbody tr:last-child td {
 .btn-edit:hover {
   background: #eff6ff;
   border-color: #3b82f6;
+}
+
+.btn-edit-details {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #dbeafe;
+}
+.btn-edit-details:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 .btn-delete {

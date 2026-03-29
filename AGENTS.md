@@ -29,6 +29,16 @@ src/alertEngine/
 - **Timezone Support**: Backend and MySQL configured to `Asia/Bangkok` timezone resolving date discrepancies in Audit Logs and database timestamps.
 - **Auto-Increment IDs**: `POST /trips` endpoint modified to automatically generate sequentially incremented IDs like `trp_001`, `trp_002` (per PDF assignment specs) instead of UUIDs.
 - **Hot-Reloading**: Backend container now mapped to local volume with `node --watch server.cjs` for instant development reloads.
+- **Standardized Error Responses**: All API error responses follow the standard schema format:
+  ```json
+  {
+    "error": {
+      "code": "...",
+      "message": "...",
+      "details": {}
+    }
+  }
+  ```
 
 ## 3. Frontend Details
 
@@ -55,5 +65,5 @@ npm run dev
 - [x] Alert Engine UI & Thai Translations completed
 - [x] Audit Log timezone discrepancies fixed
 - [x] Login UI Redesign (Minimal White theme completed)
-- [ ] Add overarching Trip Status controls (e.g. manually Start, Complete, or Cancel trips)
+- [x] Add overarching Trip Status controls (e.g. manually Start, Complete, or Cancel trips)
 - [ ] Dashboard charts (vehicles by status, trip distance trend)

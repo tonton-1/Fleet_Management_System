@@ -143,12 +143,12 @@ const handleLogin = async () => {
 }
 .shape-1 {
   width: 600px; height: 600px;
-  background: #e0e7ff; /* Soft indigo pastel */
+  background: #dbeafe; /* Soft blue pastel */
   top: -100px; left: -150px;
 }
 .shape-2 {
   width: 500px; height: 500px;
-  background: #fdf4ff; /* Soft fuchsia pastel */
+  background: #eff6ff; /* Soft light blue pastel */
   bottom: -150px; right: -100px;
 }
 
@@ -198,7 +198,7 @@ const handleLogin = async () => {
   margin: 0 0 8px 0;
 }
 .title span {
-  color: #4f46e5;
+  color: #2563eb;
 }
 .subtitle {
   font-size: 14px;
@@ -240,8 +240,8 @@ const handleLogin = async () => {
 }
 .input-field:focus-within {
   background: #ffffff;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 }
 
 .input-field .icon {
@@ -252,7 +252,7 @@ const handleLogin = async () => {
   transition: color 0.2s;
 }
 .input-field:focus-within .icon, .input-field.focused .icon {
-  color: #4f46e5;
+  color: #2563eb;
 }
 
 .input-field input {

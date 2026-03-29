@@ -1,12 +1,28 @@
 <script setup>
 import { useRouter, RouterLink } from 'vue-router'
+import Swal from 'sweetalert2'
+import { stopTokenExpirationWatcher } from '../utils/tokenExpiration'
 
 const router = useRouter()
 
-const handleLogout = () => {
-  localStorage.removeItem('accessToken')
-  localStorage.removeItem('refreshToken')
-  router.push('/')
+const handleLogout = async () => {
+  const result = await Swal.fire({
+    title: 'ออกจากระบบ',
+    text: 'คุณต้องการออกจากระบบใช่หรือไม่?',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'ใช่',
+    cancelButtonText: 'ไม่',
+    confirmButtonColor: '#dc2626',
+    cancelButtonColor: '#6b7280',
+  })
+
+  if (result.isConfirmed) {
+    stopTokenExpirationWatcher()
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
+    router.push('/')
+  }
 }
 </script>
 

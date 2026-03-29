@@ -5,12 +5,38 @@ const jwt = require('jsonwebtoken')
 const cors = require('cors')
 const path = require('path')
 const crypto = require('crypto')
+const fs = require('fs')
 require('dotenv').config()
 
 const app = express()
 app.use(express.json())
 app.use(cors())
 app.use(express.static(path.join(__dirname, 'public')))
+
+// --- Scalar API Reference ---
+const swaggerDocumentPath = path.join(__dirname, 'swagger-output.json')
+if (fs.existsSync(swaggerDocumentPath)) {
+  const swaggerDocument = require('./swagger-output.json')
+
+  // Use dynamic import for Scalar since it is an ESM module
+  import('@scalar/express-api-reference')
+    .then(({ apiReference }) => {
+      app.use(
+        '/docs',
+        apiReference({
+          spec: {
+            content: swaggerDocument,
+          },
+          theme: 'moon',
+          layout: 'modern',
+        }),
+      )
+    })
+    .catch((err) => {
+      console.error('Failed to load Scalar API Reference:', err)
+    })
+}
+// ----------------------------
 
 // Create DB connection pool
 const pool = mysql.createPool({
@@ -54,7 +80,6 @@ const authenticateToken = (req, res, next) => {
       )
     }
     req.user = user
-    setCurrentUserId(user.id)
     next()
   })
 }
@@ -77,11 +102,11 @@ const requireRole = (...allowedRoles) => {
   }
 }
 
-// Audit Log Middleware (Append-only)
-const logAudit = async (action, resourceType, resourceId, result, detail = null) => {
+// Audit Log Helper (Append-only)
+const logAudit = async (req, action, resourceType, resourceId, result, detail = null) => {
   try {
     const id = crypto.randomUUID()
-    const userId = (await getCurrentUserId()) || null
+    const userId = req?.user?.id || null
 
     await pool.query(
       `INSERT INTO audit_logs (id, user_id, action, resource_type, resource_id, result, detail, ip_address)
@@ -94,22 +119,12 @@ const logAudit = async (action, resourceType, resourceId, result, detail = null)
         resourceId,
         result,
         detail ? JSON.stringify(detail) : null,
-        null,
+        req?.ip || null,
       ],
     )
   } catch (err) {
     console.error('[Audit] Failed to log:', err.message)
   }
-}
-
-let currentUserId = null
-
-const setCurrentUserId = (userId) => {
-  currentUserId = userId
-}
-
-const getCurrentUserId = () => {
-  return currentUserId
 }
 
 // POST /auth/login endpoint
@@ -124,7 +139,7 @@ app.post('/auth/login', async (req, res) => {
     const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username])
 
     if (rows.length === 0) {
-      await logAudit('LOGIN_FAIL', 'AUTH', null, 'FAIL', { username })
+      await logAudit(req, 'LOGIN_FAIL', 'AUTH', null, 'FAIL', { username })
       return sendError(res, 401, 'UNAUTHORIZED', 'Invalid username or password')
     }
 
@@ -132,7 +147,7 @@ app.post('/auth/login', async (req, res) => {
     const match = await bcrypt.compare(password, user.password_hash)
 
     if (!match) {
-      await logAudit('LOGIN_FAIL', 'AUTH', null, 'FAIL', { username })
+      await logAudit(req, 'LOGIN_FAIL', 'AUTH', null, 'FAIL', { username })
       return sendError(res, 401, 'UNAUTHORIZED', 'Invalid username or password')
     }
 
@@ -140,7 +155,8 @@ app.post('/auth/login', async (req, res) => {
     const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: '15m' })
     const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' })
 
-    await logAudit('LOGIN_SUCCESS', 'AUTH', user.id, 'SUCCESS', { username, role: user.role })
+    req.user = user // set for audit logger
+    await logAudit(req, 'LOGIN_SUCCESS', 'AUTH', user.id, 'SUCCESS', { username, role: user.role })
 
     res.json({
       access_token: accessToken,
@@ -268,7 +284,7 @@ app.post('/vehicles', authenticateToken, async (req, res) => {
 
     res.status(201).json(responsePayload)
 
-    await logAudit('CREATE_VEHICLE', 'VEHICLE', finalId, 'SUCCESS', { license_plate, type })
+    await logAudit(req, 'CREATE_VEHICLE', 'VEHICLE', finalId, 'SUCCESS', { license_plate, type })
   } catch (error) {
     console.error(error)
     if (error.code === 'ER_DUP_ENTRY') {
@@ -666,13 +682,13 @@ app.patch('/vehicles/:id', authenticateToken, async (req, res) => {
     )
 
     if (status && status !== currentData.status) {
-      await logAudit('UPDATE_VEHICLE_STATUS', 'VEHICLE', id, 'SUCCESS', {
+      await logAudit(req, 'UPDATE_VEHICLE_STATUS', 'VEHICLE', id, 'SUCCESS', {
         old_status: currentData.status,
         new_status: status,
       })
     }
     if (driver_id && driver_id !== currentData.driver_id) {
-      await logAudit('ASSIGN_DRIVER', 'VEHICLE', id, 'SUCCESS', {
+      await logAudit(req, 'ASSIGN_DRIVER', 'VEHICLE', id, 'SUCCESS', {
         old_driver_id: currentData.driver_id,
         new_driver_id: driver_id,
       })
@@ -710,7 +726,7 @@ app.delete('/vehicles/:id', authenticateToken, requireRole('ADMIN'), async (req,
 
     await pool.query('DELETE FROM vehicles WHERE id = ?', [id])
 
-    await logAudit('DELETE_VEHICLE', 'VEHICLE', id, 'SUCCESS', { vehicle_id: id })
+    await logAudit(req, 'DELETE_VEHICLE', 'VEHICLE', id, 'SUCCESS', { vehicle_id: id })
 
     res.status(204).send()
   } catch (err) {
@@ -1046,16 +1062,41 @@ app.patch(
       } else if (status === 'COMPLETED' && currentTrip.status === 'IN_PROGRESS') {
         updateQuery += ', ended_at = NOW()'
 
-        // Update vehicle: Set to IDLE and add distance to mileage
+        // Update vehicle: Set to IDLE and add distance to mileage (in transaction)
         const distance = parseFloat(currentTrip.distance_km) || 0
-        await connection.query(
-          `
-        UPDATE vehicles 
-        SET status = 'IDLE', mileage_km = mileage_km + ? 
-        WHERE id = ?
-      `,
-          [distance, currentTrip.vehicle_id],
+        const [vehicleRows] = await connection.query(
+          'SELECT mileage_km, next_service_km FROM vehicles WHERE id = ?',
+          [currentTrip.vehicle_id],
         )
+
+        if (vehicleRows.length > 0) {
+          const currentMileage = parseInt(vehicleRows[0].mileage_km) || 0
+          const nextService = parseInt(vehicleRows[0].next_service_km) || 0
+          const newMileage = currentMileage + distance
+
+          await connection.query(
+            "UPDATE vehicles SET status = 'IDLE', mileage_km = ? WHERE id = ?",
+            [newMileage, currentTrip.vehicle_id],
+          )
+
+          // Auto-create maintenance if mileage exceeds next_service_km (in transaction)
+          if (nextService > 0 && newMileage >= nextService) {
+            const [existingMaint] = await connection.query(
+              `SELECT id FROM maintenance 
+               WHERE vehicle_id = ? AND status IN ('SCHEDULED', 'IN_PROGRESS')`,
+              [currentTrip.vehicle_id],
+            )
+
+            if (existingMaint.length === 0) {
+              const maintId = crypto.randomUUID()
+              await connection.query(
+                `INSERT INTO maintenance (id, vehicle_id, status, type, scheduled_at) 
+                 VALUES (?, ?, 'SCHEDULED', 'INSPECTION', NOW())`,
+                [maintId, currentTrip.vehicle_id],
+              )
+            }
+          }
+        }
       } else if (status === 'CANCELLED') {
         updateQuery += ', ended_at = NOW()'
 
@@ -1107,7 +1148,7 @@ app.patch(
 
         await connection.commit()
 
-        await logAudit('UPDATE_TRIP_STATUS', 'TRIP', id, 'SUCCESS', {
+        await logAudit(req, 'UPDATE_TRIP_STATUS', 'TRIP', id, 'SUCCESS', {
           old_status: currentTrip.status,
           new_status: status,
         })
@@ -1218,7 +1259,7 @@ app.patch('/checkpoints/:id/status', authenticateToken, async (req, res) => {
 
     await connection.commit()
 
-    await logAudit('UPDATE_CHECKPOINT_STATUS', 'CHECKPOINT', id, 'SUCCESS', {
+    await logAudit(req, 'UPDATE_CHECKPOINT_STATUS', 'CHECKPOINT', id, 'SUCCESS', {
       trip_id,
       sequence,
       old_status: current_status,

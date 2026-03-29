@@ -548,42 +548,65 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 h2 {
   margin: 0;
-  color: #2d3748;
+  color: #1a202c;
+  font-size: 1.75rem;
+  font-weight: 700;
 }
 
 .table-container {
   background-color: #fff;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.05),
+    0 4px 6px -2px rgba(0, 0, 0, 0.025);
 }
 
 .table-scroll-wrapper {
   overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  white-space: nowrap;
-}
-
-th,
-td {
-  padding: 1rem;
-  text-align: left;
-  border-bottom: 1px solid #e2e8f0;
+  background-color: white;
 }
 
 th {
   font-weight: 600;
   color: #4a5568;
-  background-color: #f7fafc;
+  background-color: #f8fafc;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #edf2f7;
+  color: #2d3748;
+  vertical-align: middle;
+}
+
+tbody tr:hover {
+  background-color: #f8fafc;
+  transition: background-color 0.2s ease;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .font-medium {
@@ -591,65 +614,94 @@ th {
 }
 
 .trip-id {
-  font-family: monospace;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   color: #718096;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .route-info {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  background-color: #f7fafc;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  width: fit-content;
+  flex-wrap: wrap;
+}
+
+.origin,
+.destination {
+  font-weight: 500;
+  color: #2d3748;
 }
 
 .arrow-icon {
   width: 16px;
   height: 16px;
-  color: #a0aec0;
+  color: #3182ce;
 }
 
 .time-cell {
   font-size: 0.9rem;
   color: #4a5568;
+  white-space: nowrap;
+}
+
+.action-cell {
+  white-space: nowrap;
 }
 
 .status-badge {
-  padding: 0.35rem 0.75rem;
+  padding: 0.4rem 0.85rem;
   border-radius: 9999px;
   font-size: 0.75rem;
-  font-weight: 600;
-  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  display: inline-block;
 }
 
 .status-scheduled {
-  background-color: #ecc94b;
-  color: #744210;
+  background-color: #fefcbf;
+  color: #975a16;
 }
 .status-in_progress {
-  background-color: #4299e1;
+  background-color: #ebf8ff;
+  color: #2b6cb0;
 }
 .status-completed {
-  background-color: #48bb78;
+  background-color: #f0fff4;
+  color: #2f855a;
 }
 .status-cancelled {
-  background-color: #f56565;
+  background-color: #fff5f5;
+  color: #c53030;
 }
 
 .btn-add {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  background-color: #3182ce;
+  gap: 8px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
   border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  font-weight: 500;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 .btn-add:hover {
-  background-color: #2b6cb0;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3);
+}
+.btn-add:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
 }
 .icon-small {
   width: 18px;
@@ -657,19 +709,21 @@ th {
 }
 
 .btn-view {
-  padding: 0.4rem 0.8rem;
-  border: 1px solid #cbd5e0;
+  padding: 0.45rem 1rem;
+  border: 1px solid #e2e8f0;
   background-color: white;
   color: #4a5568;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 .btn-view:hover {
   background-color: #f7fafc;
-  color: #2d3748;
+  color: #2b6cb0;
+  border-color: #cbd5e0;
 }
 
 .loading-message,
@@ -699,30 +753,56 @@ th {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5);
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modal-content {
   background-color: white;
-  padding: 2rem;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 600px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  padding: 2.5rem;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 700px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   max-height: 90vh;
   overflow-y: auto;
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .modal-content h3 {
   margin-top: 0;
-  margin-bottom: 1.5rem;
-  color: #2d3748;
+  margin-bottom: 2rem;
+  color: #1a202c;
+  font-size: 1.5rem;
+  font-weight: 700;
 }
 
 .form-grid {
@@ -749,12 +829,21 @@ th {
 .form-group input,
 .form-group select {
   width: 100%;
-  padding: 0.6rem;
+  padding: 0.75rem 1rem;
   border: 1px solid #cbd5e0;
-  border-radius: 4px;
+  border-radius: 6px;
   background-color: #fff;
   font-size: 0.95rem;
   box-sizing: border-box;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
 }
 .has-error {
   border-color: #e53e3e !important;
@@ -789,13 +878,16 @@ th {
   background-color: #edf2f7;
   color: #4a5568;
   border: 1px solid #cbd5e0;
-  padding: 0.3rem 0.6rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s;
 }
 .btn-sm:hover {
   background-color: #e2e8f0;
+  color: #1a202c;
 }
 
 .no-checkpoints {
@@ -809,13 +901,14 @@ th {
 
 .checkpoint-row {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
   align-items: center;
-  margin-bottom: 0.5rem;
-  background-color: #f7fafc;
-  padding: 0.5rem;
-  border-radius: 4px;
+  margin-bottom: 0.75rem;
+  background-color: #f8fafc;
+  padding: 0.75rem;
+  border-radius: 8px;
   border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 .cp-number {
   font-weight: bold;
@@ -825,23 +918,37 @@ th {
 }
 .checkpoint-row input {
   flex: 2;
-  padding: 0.4rem;
+  padding: 0.6rem;
   border: 1px solid #cbd5e0;
-  border-radius: 4px;
+  border-radius: 6px;
+  transition: all 0.2s;
 }
 .checkpoint-row select {
   flex: 1;
-  padding: 0.4rem;
+  padding: 0.6rem;
   border: 1px solid #cbd5e0;
-  border-radius: 4px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.checkpoint-row input:focus,
+.checkpoint-row select:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
 }
 .btn-remove-cp {
-  background-color: #fed7d7;
+  background-color: #fff5f5;
   color: #e53e3e;
-  border: none;
-  padding: 0.4rem;
-  border-radius: 4px;
+  border: 1px solid #feb2b2;
+  padding: 0.6rem;
+  border-radius: 6px;
   cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-remove-cp:hover {
+  background-color: #fed7d7;
+  color: #c53030;
+  border-color: #fc8181;
 }
 
 /* Actions */
@@ -855,26 +962,44 @@ th {
 }
 
 .btn-cancel {
-  padding: 0.5rem 1rem;
-  border: 1px solid #cbd5e0;
+  padding: 0.65rem 1.5rem;
+  border: 1px solid #e2e8f0;
   background-color: white;
   color: #4a5568;
-  border-radius: 4px;
+  border-radius: 6px;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-cancel:hover {
+  background-color: #f8fafc;
+  color: #1a202c;
+  border-color: #cbd5e0;
 }
 
 .btn-save {
-  padding: 0.5rem 1rem;
+  padding: 0.65rem 1.5rem;
   background-color: #3182ce;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px -1px rgba(49, 130, 206, 0.4);
 }
-
+.btn-save:hover:not(:disabled) {
+  background-color: #2b6cb0;
+  transform: translateY(-1px);
+}
+.btn-save:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px -1px rgba(49, 130, 206, 0.4);
+}
 .btn-save:disabled {
   background-color: #a0aec0;
   cursor: not-allowed;
+  box-shadow: none;
 }
 .w-full {
   width: 100%;
@@ -882,19 +1007,19 @@ th {
 
 /* --- Trip Tracker (Optimistic Timeline) --- */
 .tracker-modal {
-  max-width: 500px;
+  max-width: 600px;
 }
 .tracker-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
 }
 .tracker-route {
-  font-size: 1rem;
-  color: #4a5568;
-  margin-bottom: 1rem;
-  font-weight: 500;
+  font-size: 1.15rem;
+  color: #2d3748;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
 }
 .divider {
   border: 0;
@@ -968,11 +1093,15 @@ th {
 
 .step-content {
   flex: 1;
-  background-color: #f7fafc;
-  padding: 1rem;
-  border-radius: 8px;
+  background-color: white;
+  padding: 1.25rem;
+  border-radius: 10px;
   border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
+}
+.step-content:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
 }
 .step-content h4 {
   margin: 0 0 0.25rem 0;
@@ -1030,41 +1159,49 @@ th {
   background-color: #3182ce;
   color: white;
   border: none;
-  padding: 0.4rem 0.8rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(49, 130, 206, 0.2);
 }
 .btn-arrive:hover {
-  opacity: 0.8;
+  background-color: #2b6cb0;
+  transform: translateY(-1px);
 }
 
 .btn-depart {
   background-color: #38a169;
   color: white;
   border: none;
-  padding: 0.4rem 0.8rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(56, 161, 105, 0.2);
 }
 .btn-depart:hover {
-  opacity: 0.8;
+  background-color: #2f855a;
+  transform: translateY(-1px);
 }
 
 .btn-skip {
-  background-color: transparent;
+  background-color: white;
   color: #e53e3e;
   border: 1px solid #fc8181;
-  padding: 0.4rem 0.8rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.2s;
 }
 .btn-skip:hover {
   background-color: #fff5f5;
+  border-color: #e53e3e;
 }
 </style>

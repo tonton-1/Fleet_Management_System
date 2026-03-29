@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import apiClient from '../api/axios'
+import Swal from 'sweetalert2'
 
 const vehicles = ref([])
 const drivers = ref([]) // สำหรับเก็บรายชื่อคนขับใน dropdown
@@ -111,8 +112,22 @@ const saveNewVehicle = async () => {
     await apiClient.post('/vehicles', addForm.value)
     closeAddModal()
     await fetchVehicles()
+
+    Swal.fire({
+      title: 'สำเร็จ!',
+      text: 'เพิ่มยานพาหนะใหม่เรียบร้อยแล้ว',
+      icon: 'success',
+      confirmButtonText: 'ตกลง',
+      confirmButtonColor: '#3b82f6',
+    })
   } catch (error) {
-    alert('Failed to create vehicle: ' + (error.response?.data?.error?.message || error.message))
+    Swal.fire({
+      title: 'ผิดพลาด',
+      text: error.response?.data?.error?.message || error.message,
+      icon: 'error',
+      confirmButtonText: 'ตกลง',
+      confirmButtonColor: '#ef4444',
+    })
   } finally {
     isSaving.value = false
   }
@@ -158,15 +173,37 @@ const fetchDrivers = async () => {
 }
 
 const deleteVehicle = async (id, licensePlate) => {
-  if (!confirm(`Are you sure you want to delete vehicle ${licensePlate}?`)) return
+  const result = await Swal.fire({
+    title: 'ยืนยันการลบ?',
+    text: `คุณต้องการลบยานพาหนะ ${licensePlate} ใช่หรือไม่?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: 'ใช่, ลบเลย',
+    cancelButtonText: 'ยกเลิก',
+  })
+
+  if (!result.isConfirmed) return
 
   try {
     await apiClient.delete(`/vehicles/${id}`)
     // ลบรถคันนั้นออกจากรายการในหน้าจอโดยไม่ต้องโหลดใหม่ทั้งหมด
     vehicles.value = vehicles.value.filter((v) => v.id !== id)
-    alert(`Vehicle ${licensePlate} deleted successfully.`)
+
+    Swal.fire({
+      title: 'ลบสำเร็จ!',
+      text: `ลบยานพาหนะ ${licensePlate} เรียบร้อยแล้ว`,
+      icon: 'success',
+      confirmButtonColor: '#3b82f6',
+    })
   } catch (error) {
-    alert(error.response?.data?.error?.message || 'Failed to delete vehicle.')
+    Swal.fire({
+      title: 'เกิดข้อผิดพลาด',
+      text: error.response?.data?.error?.message || 'ไม่สามารถลบยานพาหนะได้',
+      icon: 'error',
+      confirmButtonColor: '#ef4444',
+    })
     console.error('Failed to delete vehicle:', error)
   }
 }
@@ -203,9 +240,22 @@ const saveVehicle = async () => {
     await fetchVehicles()
 
     closeEditModal()
-    alert('Vehicle updated successfully.')
+
+    Swal.fire({
+      title: 'อัปเดตสำเร็จ!',
+      text: 'บันทึกข้อมูลยานพาหนะเรียบร้อยแล้ว',
+      icon: 'success',
+      confirmButtonText: 'ตกลง',
+      confirmButtonColor: '#3b82f6',
+      timer: 1500,
+    })
   } catch (error) {
-    alert(error.response?.data?.error?.message || 'Failed to update vehicle.')
+    Swal.fire({
+      title: 'ผิดพลาด',
+      text: error.response?.data?.error?.message || 'ไม่สามารถอัปเดตข้อมูลได้',
+      icon: 'error',
+      confirmButtonColor: '#ef4444',
+    })
     console.error('Failed to update vehicle:', error)
   } finally {
     isSaving.value = false
@@ -511,94 +561,82 @@ watch(
 
 <style scoped>
 .vehicles-page {
-  padding: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
-  font-family:
-    'Inter',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
-  color: #374151;
+  width: 100%;
 }
 
 .header-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 2rem;
 }
 
 h2 {
-  font-size: 28px;
-  font-weight: 700;
-  color: #111827;
   margin: 0;
-  letter-spacing: -0.025em;
+  color: #1a202c;
+  font-size: 1.75rem;
+  font-weight: 700;
 }
 
 .btn-add {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 18px;
-  background: #3b82f6;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  box-shadow:
-    0 4px 6px -1px rgba(59, 130, 246, 0.2),
-    0 2px 4px -2px rgba(59, 130, 246, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
 .btn-add svg {
   width: 20px;
   height: 20px;
 }
-
 .btn-add:hover {
-  background: #2563eb;
-  transform: translateY(-1px);
-  box-shadow:
-    0 6px 8px -1px rgba(59, 130, 246, 0.3),
-    0 4px 6px -2px rgba(59, 130, 246, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3);
 }
 
 .filters {
   display: flex;
   gap: 16px;
   margin-bottom: 24px;
-  padding: 16px 20px;
-  background: white;
-  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border: 1px solid rgba(226, 232, 240, 0.8);
   border-radius: 12px;
   flex-wrap: wrap;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .filters select,
 .filters input {
-  padding: 10px 14px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
   font-size: 14px;
-  background: #f9fafb;
-  color: #374151;
+  background: #f8fafc;
+  color: #334155;
   transition: all 0.2s;
-  box-sizing: border-box;
+  flex: 1;
+  min-width: 150px;
+}
+
+.filters input {
+  min-width: 280px;
+  flex: 2;
 }
 
 .filters select:hover,
 .filters input:hover {
-  border-color: #9ca3af;
+  border-color: #cbd5e1;
+  background: #fff;
 }
-
 .filters select:focus,
 .filters input:focus {
   outline: none;
@@ -607,144 +645,142 @@ h2 {
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
 }
 
-.filters input {
-  flex: 1;
-  min-width: 240px;
-}
-
 .table-container {
-  background: white;
+  background-color: #fff;
+  padding: 2.5rem;
   border-radius: 12px;
   box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.05),
-    0 2px 4px -2px rgba(0, 0, 0, 0.05);
-  border: 1px solid #f3f4f6;
-  overflow: hidden;
+    0 10px 15px -3px rgba(0, 0, 0, 0.05),
+    0 4px 6px -2px rgba(0, 0, 0, 0.025);
+  overflow-x: auto;
 }
 
 table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 thead {
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  background: #f8fafc;
 }
 
 th {
-  padding: 16px 24px;
-  text-align: left;
-  font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  color: #4a5568;
+  background-color: #f8fafc;
   text-transform: uppercase;
+  font-size: 0.75rem;
   letter-spacing: 0.05em;
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
 }
 
 td {
-  padding: 16px 24px;
+  padding: 1rem;
   font-size: 14px;
-  color: #111827;
-  border-bottom: 1px solid #f3f4f6;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
   vertical-align: middle;
 }
 
 tbody tr {
-  transition: background-color 0.15s ease;
+  transition: all 0.2s ease;
 }
-
 tbody tr:hover {
-  background-color: #f9fafb;
+  background-color: #f8fafc;
 }
-
 tbody tr:last-child td {
   border-bottom: none;
 }
 
-.vehicle-info {
-  display: flex;
-  flex-direction: column;
-}
-
 .license-plate {
   font-weight: 700;
-  color: #111827;
+  color: #0f172a;
   font-size: 15px;
 }
 
 .type-badge {
   display: inline-block;
-  padding: 4px 10px;
-  background: #eff6ff;
-  color: #1d4ed8;
-  border-radius: 6px;
+  padding: 6px 12px;
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.025em;
+  border: 1px solid #e2e8f0;
 }
 
 .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
+  gap: 8px;
+  padding: 6px 14px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
 }
-
 .status-badge::before {
   content: '';
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.5);
 }
 
 .status-badge.status-active {
-  background: #ecfdf5;
-  color: #059669;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
 }
 .status-badge.status-active::before {
-  background: #059669;
+  background: #22c55e;
 }
 
 .status-badge.status-idle {
-  background: #eff6ff;
-  color: #2563eb;
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
 }
 .status-badge.status-idle::before {
-  background: #2563eb;
+  background: #3b82f6;
 }
 
 .status-badge.status-maintenance {
-  background: #fffbeb;
-  color: #d97706;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
 }
 .status-badge.status-maintenance::before {
-  background: #d97706;
+  background: #f59e0b;
 }
 
 .status-badge.status-retired {
-  background: #f3f4f6;
-  color: #4b5563;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
 }
 .status-badge.status-retired::before {
-  background: #6b7280;
+  background: #94a3b8;
 }
 
 .vehicle-detail {
-  color: #4b5563;
+  color: #64748b;
   font-size: 14px;
+  font-weight: 500;
 }
 
 .mileage {
-  font-weight: 500;
-  color: #4b5563;
-  background: #f3f4f6;
-  padding: 4px 10px;
-  border-radius: 6px;
+  font-weight: 600;
+  color: #334155;
+  background: #f1f5f9;
+  padding: 6px 12px;
+  border-radius: 8px;
   font-size: 13px;
+  border: 1px solid #e2e8f0;
 }
 
 .action-cell {
@@ -757,9 +793,9 @@ tbody tr:last-child td {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
+  padding: 8px 14px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -773,19 +809,23 @@ tbody tr:last-child td {
 }
 
 .btn-edit {
-  background: #eff6ff;
-  color: #2563eb;
+  background: white;
+  color: #3b82f6;
+  border: 1px solid #bfdbfe;
 }
 .btn-edit:hover {
-  background: #dbecfe;
+  background: #eff6ff;
+  border-color: #3b82f6;
 }
 
 .btn-delete {
-  background: #fef2f2;
-  color: #dc2626;
+  background: white;
+  color: #ef4444;
+  border: 1px solid #fecaca;
 }
 .btn-delete:hover {
-  background: #fee2e2;
+  background: #fef2f2;
+  border-color: #ef4444;
 }
 
 .modal-overlay {
@@ -794,14 +834,14 @@ tbody tr:last-child td {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(17, 24, 39, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 20px;
-  animation: fadeIn 0.2s ease-out;
+  animation: fadeIn 0.3s ease-out;
 }
 
 @keyframes fadeIn {
@@ -815,13 +855,13 @@ tbody tr:last-child td {
 
 .modal-content {
   background: white;
-  border-radius: 16px;
+  border-radius: 20px;
   width: 100%;
   max-width: 480px;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  animation: slideUp 0.3s ease-out;
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modal-content.modal-lg {
@@ -831,57 +871,59 @@ tbody tr:last-child td {
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(30px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
 .modal-content h3 {
-  font-size: 20px;
-  font-weight: 600;
-  color: #111827;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
   margin: 0;
-  padding: 24px 24px 16px;
-  border-bottom: 1px solid #f3f4f6;
+  padding: 24px 32px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 form {
-  padding: 24px;
+  padding: 32px;
 }
 
-/* Grid layout for complex forms */
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px 20px;
+  gap: 20px 24px;
 }
-
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 .form-grid .form-group {
-  margin-bottom: 0; /* Let gap handle spacing */
+  margin-bottom: 0;
 }
 
 .form-group label {
   display: block;
   font-size: 13px;
   font-weight: 600;
-  color: #4b5563;
-  margin-bottom: 6px;
+  color: #475569;
+  margin-bottom: 8px;
 }
 
 .form-group input,
 .form-group select {
   width: 100%;
-  padding: 10px 14px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  padding: 12px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
   font-size: 14px;
-  color: #111827;
+  color: #0f172a;
   background: #fff;
   transition: all 0.2s;
   box-sizing: border-box;
@@ -889,14 +931,13 @@ form {
 
 .form-group input:hover,
 .form-group select:hover {
-  border-color: #9ca3af;
+  border-color: #94a3b8;
 }
-
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
   border-color: #3b82f6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
 }
 
 .modal-actions {
@@ -904,15 +945,15 @@ form {
   gap: 12px;
   justify-content: flex-end;
   margin-top: 32px;
-  padding-top: 20px;
-  border-top: 1px solid #f3f4f6;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
   grid-column: 1 / -1;
 }
 
 .btn-cancel,
 .btn-save {
-  padding: 10px 20px;
-  border-radius: 8px;
+  padding: 12px 24px;
+  border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -921,39 +962,40 @@ form {
 
 .btn-cancel {
   background: white;
-  color: #4b5563;
-  border: 1px solid #d1d5db;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
 }
-
 .btn-cancel:hover {
-  background: #f9fafb;
-  color: #111827;
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
 }
 
 .btn-save {
-  background: #3b82f6;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
   border: none;
-  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
-
 .btn-save:hover:not(:disabled) {
-  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
 }
-
 .btn-save:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .loading-message,
 .error-message {
   text-align: center;
   padding: 80px 40px;
-  color: #4b5563;
+  color: #64748b;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -964,9 +1006,9 @@ form {
 }
 
 .spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid #e5e7eb;
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f1f5f9;
   border-top-color: #3b82f6;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -982,33 +1024,42 @@ form {
 }
 
 .error-message {
-  color: #dc2626;
+  color: #ef4444;
   background: #fef2f2;
+  border: 1px solid #fecaca;
 }
 
 @media (max-width: 768px) {
+  .vehicles-page {
+    padding: 16px;
+  }
   .filters {
     flex-direction: column;
+    padding: 16px;
   }
-
   .filters input,
   .filters select {
     min-width: 100%;
     width: 100%;
   }
-
   .table-container {
     overflow-x: auto;
+    border-radius: 12px;
   }
-
   .form-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
-
   .modal-content {
     margin: 0 16px;
     height: auto;
     max-height: 90vh;
+  }
+  form {
+    padding: 20px;
+  }
+  .modal-content h3 {
+    padding: 20px;
   }
 }
 </style>

@@ -75,7 +75,7 @@
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
-              stroke-width="1.5"
+              stroke-width="2"
               stroke="currentColor"
             >
               <path
@@ -104,13 +104,13 @@
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
-                stroke-width="1.5"
+                stroke-width="2"
                 stroke="currentColor"
               >
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
                 />
               </svg>
               <svg
@@ -118,13 +118,13 @@
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
-                stroke-width="1.5"
+                stroke-width="2"
                 stroke="currentColor"
               >
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
             </div>
@@ -268,13 +268,23 @@ onMounted(() => {
 
 <style scoped>
 .maintenance-container {
-  padding: 24px;
+  padding: 32px 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  color: #1f2937;
 }
 
 .main-layout {
   display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 24px;
+  grid-template-columns: 1fr 340px;
+  gap: 32px;
 }
 
 @media (max-width: 1024px) {
@@ -287,36 +297,49 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 h1 {
-  font-size: 24px;
-  font-weight: 600;
-  color: #1f2937;
+  font-size: 32px;
+  font-weight: 800;
   margin: 0;
+  letter-spacing: -0.025em;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .refresh-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: #3b82f6;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
 .refresh-btn:hover:not(:disabled) {
-  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3);
+}
+
+.refresh-btn:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .refresh-btn:disabled {
   opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .refresh-btn svg {
@@ -354,31 +377,45 @@ h1 {
 
 .table-container {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  overflow-x: auto;
 }
 
 .maintenance-table {
   width: 100%;
   border-collapse: collapse;
+  white-space: nowrap;
 }
 
 .maintenance-table th {
-  background: #f9fafb;
-  padding: 14px 16px;
+  background: #f8fafc;
+  padding: 18px 24px;
   text-align: left;
   font-size: 13px;
   font-weight: 600;
-  color: #6b7280;
-  border-bottom: 1px solid #e5e7eb;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #e2e8f0;
 }
 
 .maintenance-table td {
-  padding: 14px 16px;
+  padding: 16px 24px;
   font-size: 14px;
-  color: #374151;
-  border-bottom: 1px solid #f3f4f6;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.maintenance-table tr {
+  transition: all 0.2s ease;
+  border-left: 4px solid transparent;
+}
+
+.maintenance-table tr:hover {
+  background-color: #f8fafc;
 }
 
 .maintenance-table tr:last-child td {
@@ -386,73 +423,88 @@ h1 {
 }
 
 .maintenance-table tr.row-overdue {
+  border-left-color: #ef4444;
   background: #fef2f2;
 }
 
 .maintenance-table tr.row-due-soon {
+  border-left-color: #f59e0b;
   background: #fffbeb;
 }
 
 .maintenance-table tr.row-completed {
-  background: #f0fdf4;
+  border-left-color: #22c55e;
 }
 
 .maintenance-table tr.row-in-progress {
-  background: #eff6ff;
+  border-left-color: #3b82f6;
 }
 
 .status-badge {
   display: inline-block;
-  padding: 4px 10px;
-  border-radius: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.025em;
 }
 
 .status-badge.overdue {
   background: #fee2e2;
-  color: #dc2626;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
 }
 
 .status-badge.due-soon {
   background: #fef3c7;
-  color: #d97706;
+  color: #b45309;
+  border: 1px solid #fde68a;
 }
 
 .status-badge.scheduled {
-  background: #e0e7ff;
-  color: #4f46e5;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
 }
 
 .status-badge.completed {
   background: #dcfce7;
-  color: #16a34a;
+  color: #166534;
+  border: 1px solid #bbf7d0;
 }
 
 .status-badge.in-progress {
   background: #dbeafe;
-  color: #2563eb;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
 }
 
 .vehicle-info {
   display: flex;
   flex-direction: column;
+  gap: 4px;
 }
 
 .license-plate {
-  font-weight: 600;
-  color: #1f2937;
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 15px;
 }
 
 .vehicle-type {
   font-size: 12px;
-  color: #6b7280;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 6px;
+  width: fit-content;
 }
 
 .maintenance-status {
   font-size: 13px;
-  padding: 4px 8px;
-  border-radius: 4px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
 }
 
 .maintenance-status.scheduled {
@@ -477,35 +529,38 @@ h1 {
 /* Alerts Panel */
 .alerts-panel {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(226, 232, 240, 0.8);
   height: fit-content;
   position: sticky;
   top: 24px;
+  overflow: hidden;
 }
 
 .panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #f8fafc;
 }
 
 .panel-header h2 {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #1f2937;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
   margin: 0;
 }
 
 .panel-header h2 svg {
-  width: 20px;
-  height: 20px;
-  color: #6b7280;
+  width: 22px;
+  height: 22px;
+  color: #3b82f6;
 }
 
 .alert-count {
@@ -515,92 +570,115 @@ h1 {
 
 .alert-count .count {
   font-size: 12px;
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 600;
 }
 
 .alert-count .count.critical {
   background: #fee2e2;
   color: #dc2626;
+  border: 1px solid #fecaca;
 }
 
 .alert-count .count.warning {
-  background: #fef3c7;
+  background: #fffbeb;
   color: #d97706;
+  border: 1px solid #fde68a;
 }
 
 .alerts-list {
   max-height: 500px;
   overflow-y: auto;
+  padding: 12px;
 }
 
 .alert-item {
   display: flex;
-  gap: 12px;
-  padding: 14px 20px;
-  border-bottom: 1px solid #f3f4f6;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .alert-item:last-child {
-  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.alert-item:hover {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  transform: translateY(-1px);
 }
 
 .alert-icon {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .alert-item.warning .alert-icon {
-  background: #fef3c7;
+  background: #fffbeb;
   color: #d97706;
+  box-shadow: 0 4px 10px rgba(217, 119, 6, 0.15);
 }
 
 .alert-item.critical .alert-icon {
-  background: #fee2e2;
+  background: #fef2f2;
   color: #dc2626;
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.15);
 }
 
 .alert-icon svg {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
 }
 
 .alert-content {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .alert-type {
-  font-size: 11px;
-  color: #6b7280;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
   text-transform: uppercase;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
+  letter-spacing: 0.025em;
 }
 
 .alert-message {
-  font-size: 13px;
-  color: #374151;
-  line-height: 1.4;
+  font-size: 14px;
+  color: #1e293b;
+  line-height: 1.5;
+  font-weight: 500;
 }
 
 .no-alerts {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40px 20px;
-  color: #9ca3af;
+  padding: 60px 20px;
+  color: #64748b;
+  background: #f8fafc;
+  border-radius: 12px;
+  margin: 12px;
 }
 
 .no-alerts svg {
-  width: 40px;
-  height: 40px;
-  margin-bottom: 8px;
-  color: #d1d5db;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 12px;
+  color: #94a3b8;
 }
 </style>

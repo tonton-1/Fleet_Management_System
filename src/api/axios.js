@@ -1,5 +1,6 @@
 import axios from 'axios'
-import router from '../router' // Import router to handle redirects
+import router from '../router'
+import { stopTokenExpirationWatcher } from '../utils/tokenExpiration'
 
 const apiClient = axios.create({
   baseURL: 'http://localhost:3000', // Set the base URL for all requests
@@ -64,6 +65,7 @@ apiClient.interceptors.response.use(
       }
 
       // ถ้า Refresh ไม่ผ่าน หรือไม่มี Refresh Token ให้เคลียร์ข้อมูลแล้วเด้งไปหน้า Login
+      stopTokenExpirationWatcher()
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
       router.push('/')

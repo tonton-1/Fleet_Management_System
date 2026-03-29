@@ -13,5 +13,5 @@ COPY . .
 # Expose backend port
 EXPOSE 3000
 
-# Start server
-CMD ["node", "server.cjs"]
+# Generate Swagger Docs and Start server
+CMD ["sh", "-c", "node swagger.cjs && node server.cjs"]

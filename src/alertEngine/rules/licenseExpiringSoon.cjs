@@ -3,7 +3,7 @@ const { AlertRule } = require('../ruleInterface.cjs')
 class LicenseExpiringSoonRule extends AlertRule {
   constructor() {
     super()
-    this.name = 'License Expiring Soon'
+    this.name = 'ใบอนุญาตใกล้หมดอายุ'
     this.severity = 'WARNING'
   }
 
@@ -21,7 +21,7 @@ class LicenseExpiringSoonRule extends AlertRule {
       severity: this.severity,
       affected_resource_type: 'DRIVER',
       affected_resource_id: d.id,
-      message: `Driver ${d.name}'s license (${d.license_number}) expires on ${d.license_expires_at} (within 30 days)`,
+      message: `ใบอนุญาตของพนักงานขับรถ ${d.name} (${d.license_number}) จะหมดอายุในวันที่ ${d.license_expires_at} (ภายใน 30 วัน)`,
       created_at: new Date(),
     }))
   }

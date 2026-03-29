@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import apiClient from '../api/axios'
+import Swal from 'sweetalert2'
 
 const trips = ref([])
 const availableVehicles = ref([])
@@ -48,6 +49,42 @@ const decodeToken = (token) => {
   }
 }
 const canManageTrips = computed(() => ['ADMIN', 'DISPATCHER'].includes(currentUserRole.value))
+const isAdmin = computed(() => currentUserRole.value === 'ADMIN')
+
+// ---- DELETE TRIP ----
+const deleteTrip = async (trip) => {
+  const result = await Swal.fire({
+    title: 'ยืนยันการลบ?',
+    html: `ต้องการลบทริป <strong>${trip.id}</strong> (เส้นทาง ${trip.origin} → ${trip.destination})?<br><small style="color:#718096">ผลการแวะพักทุกจุดในทริปนี้จะถูกลบด้วย</small>`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#e53e3e',
+    cancelButtonColor: '#a0aec0',
+    confirmButtonText: 'ใช่, ลบเลย',
+    cancelButtonText: 'ยกเลิก',
+    reverseButtons: true,
+  })
+
+  if (!result.isConfirmed) return
+
+  try {
+    await apiClient.delete(`/trips/${trip.id}`)
+    await Swal.fire({
+      title: 'ลบสำเร็จ!',
+      text: `ลบทริป ${trip.id} ออกจากระบบแล้ว`,
+      icon: 'success',
+      timer: 2000,
+      timerProgressBar: true,
+      showConfirmButton: false,
+    })
+    await fetchTrips()
+  } catch (error) {
+    const msg = error.response?.data?.error?.message || 'Failed to delete trip.'
+    Swal.fire({ title: 'ไม่สามารถลบได้', text: msg, icon: 'error', confirmButtonColor: '#3182ce' })
+    console.error('Failed to delete trip:', error)
+  }
+}
+
 
 const fetchTrips = async () => {
   try {
@@ -116,17 +153,31 @@ const saveNewTrip = async () => {
     if (payload.distance_km) payload.distance_km = parseFloat(payload.distance_km)
     if (payload.cargo_weight_kg) payload.cargo_weight_kg = parseFloat(payload.cargo_weight_kg)
 
-    await apiClient.post('/trips', payload)
+    const res = await apiClient.post('/trips', payload)
+    const newTripId = res.data?.trip_id || ''
 
     closeAddModal()
-    alert('Trip created successfully!')
     await fetchTrips() // รีเฟรชตาราง
+
+    await Swal.fire({
+      title: 'สร้างทริปสำเร็จ!',
+      html: `ทริปใหม่ <strong>${newTripId}</strong> ถูกสร้างและบันทึกลงระบบแล้ว`,
+      icon: 'success',
+      timer: 2500,
+      timerProgressBar: true,
+      showConfirmButton: false,
+    })
   } catch (error) {
     const errorResponse = error.response?.data?.error
     if (errorResponse && errorResponse.details) {
       fieldErrors.value = errorResponse.details
     } else {
-      alert(errorResponse?.message || 'Failed to create trip.')
+      Swal.fire({
+        title: 'สร้างทริปไม่สำเร็จ',
+        text: errorResponse?.message || 'Failed to create trip.',
+        icon: 'error',
+        confirmButtonColor: '#3182ce',
+      })
     }
     console.error('Failed to create trip:', error)
   } finally {
@@ -213,17 +264,7 @@ const updateCheckpointStatus = async (checkpointIndex, newStatus) => {
   if (newStatus === 'DEPARTED') checkpoint.departed_at = now
 
   try {
-    // 3. SIMULATE NETWORK DELAY (300 - 800ms)
-    const delay = Math.floor(Math.random() * 500) + 300
-    await new Promise((resolve) => setTimeout(resolve, delay))
-
-    // 4. SIMULATE 30% FAILURE RATE
-    const isFail = Math.random() < 0.3
-    if (isFail) {
-      throw new Error('Network timeout! (Simulated 30% failure)')
-    }
-
-    // 5. ถ้าไม่พัง... ยิง API ของจริงไปอัปเดต Backend เงียบๆ เบื้องหลัง
+    // ยิง API ของจริงไปอัปเดต Backend
     await apiClient.patch(`/checkpoints/${checkpoint.id}/status`, { status: newStatus })
   } catch (error) {
     // 6. ROLLBACK: ถ้ายิง API พัง หรือโดนสุ่มว่าพัง ให้ดึงค่าเก่าที่เก็บไว้มาทับคืน
@@ -321,6 +362,7 @@ onMounted(() => {
               <td class="time-cell">{{ formatDateTime(trip.ended_at) }}</td>
               <td class="action-cell">
                 <button @click="openTracker(trip.id)" class="btn-view">Track Trip</button>
+                <button v-if="isAdmin && trip.status !== 'IN_PROGRESS'" @click="deleteTrip(trip)" class="btn-delete">Delete</button>
               </td>
             </tr>
             <tr v-if="trips.length === 0">
@@ -1203,5 +1245,22 @@ tbody tr:last-child td {
 .btn-skip:hover {
   background-color: #fff5f5;
   border-color: #e53e3e;
+}
+
+.btn-delete {
+  padding: 0.45rem 1rem;
+  background-color: #fff5f5;
+  color: #c53030;
+  border: 1px solid #fed7d7;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: 0.4rem;
+}
+.btn-delete:hover {
+  background-color: #fed7d7;
+  color: #742a2a;
 }
 </style>

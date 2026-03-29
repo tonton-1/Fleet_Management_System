@@ -523,37 +523,49 @@ app.post('/drivers', authenticateToken, async (req, res) => {
   }
 })
 
-// PATCH /drivers/:id endpoint
-app.patch('/drivers/:id', authenticateToken, async (req, res) => {
+// PATCH /drivers/:id endpoint - Full update (ADMIN only)
+app.patch('/drivers/:id', authenticateToken, requireRole('ADMIN'), async (req, res) => {
   const { id } = req.params
-  const { status } = req.body
+  const { name, license_number, license_expires_at, phone, status } = req.body
 
   try {
     const [driver] = await pool.query('SELECT * FROM drivers WHERE id = ?', [id])
     if (driver.length === 0) return sendError(res, 404, 'NOT_FOUND', 'Driver not found')
 
     // Cannot change status if driver has IN_PROGRESS trip
-    const [activeTrips] = await pool.query(
-      'SELECT id FROM trips WHERE driver_id = ? AND status = ?',
-      [id, 'IN_PROGRESS'],
-    )
-    if (activeTrips.length > 0 && status && status !== driver[0].status) {
-      return sendError(
-        res,
-        409,
-        'CONFLICT',
-        'Cannot change status of a driver currently on an active trip',
+    if (status && status !== driver[0].status) {
+      const [activeTrips] = await pool.query(
+        'SELECT id FROM trips WHERE driver_id = ? AND status = ?',
+        [id, 'IN_PROGRESS'],
       )
+      if (activeTrips.length > 0) {
+        return sendError(
+          res,
+          409,
+          'CONFLICT',
+          'Cannot change status of a driver currently on an active trip',
+        )
+      }
     }
 
+    const newName = name || driver[0].name
+    const newLicense = license_number || driver[0].license_number
+    const newExpiry = license_expires_at || driver[0].license_expires_at
+    const newPhone = phone || driver[0].phone
     const newStatus = status || driver[0].status
-    await pool.query('UPDATE drivers SET status = ?, updated_at = NOW() WHERE id = ?', [
-      newStatus,
-      id,
-    ])
+
+    await pool.query(
+      `UPDATE drivers SET name = ?, license_number = ?, license_expires_at = ?, phone = ?, status = ?, updated_at = NOW() WHERE id = ?`,
+      [newName, newLicense, newExpiry, newPhone, newStatus, id],
+    )
+
+    await logAudit(req, 'UPDATE_DRIVER', 'DRIVER', id, 'SUCCESS', { name: newName, status: newStatus })
     res.json({ message: 'Driver updated successfully' })
   } catch (err) {
     console.error(err)
+    if (err.code === 'ER_DUP_ENTRY') {
+      return sendError(res, 409, 'CONFLICT', 'License number already in use by another driver')
+    }
     return sendError(res, 500, 'INTERNAL_SERVER_ERROR', 'Failed to update driver')
   }
 })
@@ -943,7 +955,18 @@ app.post('/trips', authenticateToken, requireRole('ADMIN', 'DISPATCHER'), async 
     // 4. Generate Trip ID if not provided
     let finalTripId = id
     if (!finalTripId) {
-      finalTripId = crypto.randomUUID() // Use UUID for trips to prevent guessing
+      const [rows] = await connection.query(`
+        SELECT id FROM trips 
+        WHERE id LIKE 'trp_%'
+        ORDER BY CAST(SUBSTRING(id, 5) AS UNSIGNED) DESC 
+        LIMIT 1
+      `)
+      if (rows.length > 0) {
+        const lastNum = parseInt(rows[0].id.substring(4), 10)
+        finalTripId = `trp_${(lastNum + 1).toString().padStart(3, '0')}`
+      } else {
+        finalTripId = 'trp_001'
+      }
     }
 
     // 5. Insert Trip
@@ -966,17 +989,30 @@ app.post('/trips', authenticateToken, requireRole('ADMIN', 'DISPATCHER'), async 
 
     // 6. Insert Checkpoints (if any)
     if (checkpoints.length > 0) {
-      const checkpointValues = checkpoints.map((cp, index) => [
-        crypto.randomUUID(), // Checkpoint ID
-        finalTripId,
-        index + 1, // Sequence
-        'PENDING', // Default status
-        cp.location_name,
-        cp.latitude || null,
-        cp.longitude || null,
-        cp.purpose || null,
-        cp.notes || null,
-      ])
+      // Generate chk_XXX IDs: หา ID ล่าสุดของ checkpoints ก่อน
+      const [lastChkRow] = await connection.query(`
+        SELECT id FROM checkpoints 
+        WHERE id LIKE 'chk_%'
+        ORDER BY CAST(SUBSTRING(id, 5) AS UNSIGNED) DESC 
+        LIMIT 1
+      `)
+      let chkCounter = lastChkRow.length > 0 ? parseInt(lastChkRow[0].id.substring(4), 10) : 0
+
+      const checkpointValues = checkpoints.map((cp, index) => {
+        chkCounter++
+        const chkId = `chk_${chkCounter.toString().padStart(3, '0')}`
+        return [
+          chkId,
+          finalTripId,
+          index + 1,
+          'PENDING',
+          cp.location_name,
+          cp.latitude || null,
+          cp.longitude || null,
+          cp.purpose || null,
+          cp.notes || null,
+        ]
+      })
 
       const insertCheckpointsQuery = `
         INSERT INTO checkpoints (
@@ -988,6 +1024,14 @@ app.post('/trips', authenticateToken, requireRole('ADMIN', 'DISPATCHER'), async 
     }
 
     await connection.commit() // Commit Transaction
+
+    await logAudit(req, 'CREATE_TRIP', 'TRIP', finalTripId, 'SUCCESS', {
+      origin,
+      destination,
+      vehicle_id,
+      driver_id,
+      checkpoints_count: checkpoints.length,
+    })
 
     res.status(201).json({ message: 'Trip created successfully', trip_id: finalTripId })
   } catch (error) {
@@ -1088,7 +1132,15 @@ app.patch(
             )
 
             if (existingMaint.length === 0) {
-              const maintId = crypto.randomUUID()
+              // Generate mnt_XXX ID
+              const [lastMntRow] = await connection.query(`
+                SELECT id FROM maintenance 
+                WHERE id LIKE 'mnt_%'
+                ORDER BY CAST(SUBSTRING(id, 5) AS UNSIGNED) DESC 
+                LIMIT 1
+              `)
+              const lastMntNum = lastMntRow.length > 0 ? parseInt(lastMntRow[0].id.substring(4), 10) : 0
+              const maintId = `mnt_${(lastMntNum + 1).toString().padStart(3, '0')}`
               await connection.query(
                 `INSERT INTO maintenance (id, vehicle_id, status, type, scheduled_at) 
                  VALUES (?, ?, 'SCHEDULED', 'INSPECTION', NOW())`,
@@ -1129,11 +1181,19 @@ app.patch(
               )
 
               if (existingMaint.length === 0) {
-                const maintId = crypto.randomUUID()
+                // Generate mnt_XXX ID
+                const [lastMntRow2] = await connection.query(`
+                  SELECT id FROM maintenance 
+                  WHERE id LIKE 'mnt_%'
+                  ORDER BY CAST(SUBSTRING(id, 5) AS UNSIGNED) DESC 
+                  LIMIT 1
+                `)
+                const lastMntNum2 = lastMntRow2.length > 0 ? parseInt(lastMntRow2[0].id.substring(4), 10) : 0
+                const maintId2 = `mnt_${(lastMntNum2 + 1).toString().padStart(3, '0')}`
                 await connection.query(
                   `INSERT INTO maintenance (id, vehicle_id, status, type, scheduled_at) 
                    VALUES (?, ?, 'SCHEDULED', 'INSPECTION', NOW())`,
-                  [maintId, currentTrip.vehicle_id],
+                  [maintId2, currentTrip.vehicle_id],
                 )
               }
             }
@@ -1166,6 +1226,32 @@ app.patch(
     }
   },
 )
+
+// DELETE /trips/:id endpoint (ADMIN only)
+app.delete('/trips/:id', authenticateToken, requireRole('ADMIN'), async (req, res) => {
+  const { id } = req.params
+  try {
+    const [trip] = await pool.query('SELECT id, status FROM trips WHERE id = ?', [id])
+    if (trip.length === 0) return sendError(res, 404, 'NOT_FOUND', 'Trip not found')
+
+    // ไม่อนุญาตให้ลบทริปที่กำลังวิ่งอยู่
+    if (trip[0].status === 'IN_PROGRESS') {
+      return sendError(res, 409, 'CONFLICT', 'Cannot delete a trip that is currently IN_PROGRESS')
+    }
+
+    // ลบ checkpoints ที่เชื่อมกับทริปนี้ก่อน
+    await pool.query('DELETE FROM checkpoints WHERE trip_id = ?', [id])
+    // ลบทริป
+    await pool.query('DELETE FROM trips WHERE id = ?', [id])
+
+    await logAudit(req, 'DELETE_TRIP', 'TRIP', id, 'SUCCESS', { trip_id: id })
+
+    res.status(204).send()
+  } catch (err) {
+    console.error(err)
+    return sendError(res, 500, 'INTERNAL_SERVER_ERROR', 'Failed to delete trip')
+  }
+})
 
 // PATCH /checkpoints/:id/status endpoint (Update Checkpoint Status)
 app.patch('/checkpoints/:id/status', authenticateToken, async (req, res) => {

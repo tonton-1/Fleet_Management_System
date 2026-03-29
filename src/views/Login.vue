@@ -8,7 +8,6 @@ const router = useRouter()
 
 const username = ref('')
 const password = ref('')
-const rememberMe = ref(false)
 const showPassword = ref(false)
 
 const isLoading = ref(false)
@@ -44,649 +43,347 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="login-page">
-    <!-- Background decorative elements -->
-    <div class="bg-shape bg-shape-1"></div>
-    <div class="bg-shape bg-shape-2"></div>
-    <div class="bg-shape bg-shape-3"></div>
+  <div class="login-wrapper">
+    <!-- Subtle Minimal Background -->
+    <div class="minimal-bg">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+    </div>
 
+    <!-- Minimal UI Container -->
     <div class="login-container">
-      <!-- Left panel: Branding -->
-      <div class="brand-panel">
-        <div class="brand-content">
-          <div class="brand-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+      <div class="brand-header">
+        <div class="logo-box">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+          </svg>
+        </div>
+        <h1 class="title">Fleet<span>Track</span></h1>
+        <p class="subtitle">Welcome back! Please enter your details.</p>
+      </div>
+
+      <form @submit.prevent="handleLogin" class="login-form">
+        <!-- Username -->
+        <div class="input-group">
+          <label>Username</label>
+          <div class="input-field" :class="{ 'focused': username }">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
             </svg>
-          </div>
-          <h1 class="brand-title">Fleet<span>Track</span></h1>
-          <p class="brand-subtitle">Fleet Management Platform</p>
-
-          <div class="brand-stats">
-            <div class="brand-stat">
-              <span class="stat-number">99.9%</span>
-              <span class="stat-label">Uptime</span>
-            </div>
-            <div class="brand-divider"></div>
-            <div class="brand-stat">
-              <span class="stat-number">24/7</span>
-              <span class="stat-label">Monitoring</span>
-            </div>
-            <div class="brand-divider"></div>
-            <div class="brand-stat">
-              <span class="stat-number">Real-time</span>
-              <span class="stat-label">Tracking</span>
-            </div>
-          </div>
-
-          <div class="feature-list">
-            <div class="feature-item">
-              <div class="feature-dot"></div>
-              <span>Real-time vehicle tracking & monitoring</span>
-            </div>
-            <div class="feature-item">
-              <div class="feature-dot"></div>
-              <span>Smart maintenance scheduling</span>
-            </div>
-            <div class="feature-item">
-              <div class="feature-dot"></div>
-              <span>Driver performance analytics</span>
-            </div>
-            <div class="feature-item">
-              <div class="feature-dot"></div>
-              <span>Automated alerts & notifications</span>
-            </div>
+            <input type="text" v-model="username" placeholder="Enter your username" :disabled="isLoading" autocomplete="username" required />
           </div>
         </div>
-      </div>
 
-      <!-- Right panel: Login form -->
-      <div class="form-panel">
-        <div class="form-wrapper">
-          <div class="form-header">
-            <h2>Welcome back</h2>
-            <p>Sign in to your account to continue</p>
-          </div>
-
-          <form @submit.prevent="handleLogin" class="login-form">
-            <!-- Username -->
-            <div class="field-group">
-              <label for="username">Username</label>
-              <div class="input-wrap" :class="{ focused: username }">
-                <div class="input-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                  </svg>
-                </div>
-                <input
-                  type="text"
-                  id="username"
-                  v-model="username"
-                  placeholder="Enter your username"
-                  :disabled="isLoading"
-                  autocomplete="username"
-                  required
-                />
-              </div>
-            </div>
-
-            <!-- Password -->
-            <div class="field-group">
-              <label for="password">Password</label>
-              <div class="input-wrap" :class="{ focused: password }">
-                <div class="input-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-                  </svg>
-                </div>
-                <input
-                  :type="showPassword ? 'text' : 'password'"
-                  id="password"
-                  v-model="password"
-                  placeholder="Enter your password"
-                  :disabled="isLoading"
-                  autocomplete="current-password"
-                  required
-                />
-                <button
-                  type="button"
-                  class="toggle-password"
-                  @click="showPassword = !showPassword"
-                  :disabled="isLoading"
-                  tabindex="-1"
-                >
-                  <!-- Eye open -->
-                  <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                  </svg>
-                  <!-- Eye closed -->
-                  <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <!-- Options -->
-            <div class="form-options">
-              <label class="remember-me">
-                <input type="checkbox" v-model="rememberMe" :disabled="isLoading" />
-                <span class="checkbox-custom"></span>
-                <span>Remember me</span>
-              </label>
-              <a href="#" class="forgot-password">Forgot password?</a>
-            </div>
-
-            <!-- Error -->
-            <transition name="shake">
-              <div v-if="errorMessage" class="error-banner">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                </svg>
-                <span>{{ errorMessage }}</span>
-              </div>
-            </transition>
-
-            <!-- Submit -->
-            <button type="submit" class="login-btn" :disabled="isLoading">
-              <span v-if="isLoading" class="btn-loading">
-                <svg class="spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Signing in...
-              </span>
-              <span v-else class="btn-content">
-                Sign In
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                </svg>
-              </span>
+        <!-- Password -->
+        <div class="input-group">
+          <label>Password</label>
+          <div class="input-field" :class="{ 'focused': password }">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+            </svg>
+            <input :type="showPassword ? 'text' : 'password'" v-model="password" placeholder="••••••••" :disabled="isLoading" autocomplete="current-password" required />
+            <button type="button" class="btn-toggle" @click="showPassword = !showPassword" tabindex="-1">
+              <svg v-if="!showPassword" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              </svg>
+              <svg v-else class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+              </svg>
             </button>
-          </form>
-
-          <p class="form-footer">
-            Fleet Management System &copy; {{ new Date().getFullYear() }}
-          </p>
+          </div>
         </div>
-      </div>
+
+        <!-- Error Alert -->
+        <transition name="fade">
+          <div v-if="errorMessage" class="error-box">
+             {{ errorMessage }}
+          </div>
+        </transition>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn-submit" :disabled="isLoading">
+          <span v-if="isLoading" class="spinner"></span>
+          <span v-else>Sign In</span>
+        </button>
+      </form>
+
+ 
     </div>
   </div>
 </template>
 
 <style scoped>
-/* ─── Base ─── */
-.login-page {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.login-wrapper {
+  position: relative;
   min-height: 100vh;
-  background-color: #f3f4f6;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  position: relative;
-  overflow: hidden;
-}
-
-/* ─── Background shapes ─── */
-.bg-shape {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-}
-.bg-shape-1 {
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(79, 70, 229, 0.08) 0%, transparent 70%);
-  top: -200px;
-  left: -200px;
-}
-.bg-shape-2 {
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(5, 150, 105, 0.06) 0%, transparent 70%);
-  bottom: -100px;
-  right: -100px;
-}
-.bg-shape-3 {
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(217, 119, 6, 0.05) 0%, transparent 70%);
-  top: 50%;
-  right: 30%;
-}
-
-/* ─── Main Container ─── */
-.login-container {
-  display: flex;
-  width: 100%;
-  max-width: 960px;
-  min-height: 580px;
-  background: #ffffff;
-  border-radius: 20px;
-  box-shadow:
-    0 4px 6px rgba(0, 0, 0, 0.04),
-    0 20px 50px rgba(0, 0, 0, 0.10);
-  overflow: hidden;
-  margin: 24px;
-  animation: slideUp 0.4s ease-out;
-}
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ─── Brand Panel (left) ─── */
-.brand-panel {
-  flex: 1;
-  background: linear-gradient(145deg, #3730a3 0%, #4f46e5 50%, #6366f1 100%);
-  padding: 48px 40px;
   display: flex;
   align-items: center;
-  position: relative;
+  justify-content: center;
+  background-color: #f7f9fa; /* Very subtle grey/white */
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow: hidden;
+  color: #1f2937;
 }
 
-.brand-panel::before {
-  content: '';
+/* Very subtle background accents */
+.minimal-bg {
   position: absolute;
-  top: -80px;
-  right: -80px;
-  width: 280px;
-  height: 280px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 50%;
+  top: 0; left: 0; width: 100%; height: 100%;
+  overflow: hidden;
+  z-index: 0;
 }
-.brand-panel::after {
-  content: '';
+.shape {
   position: absolute;
-  bottom: -60px;
-  left: -60px;
-  width: 220px;
-  height: 220px;
-  background: rgba(255, 255, 255, 0.04);
   border-radius: 50%;
+  filter: blur(100px);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+}
+.shape-1 {
+  width: 600px; height: 600px;
+  background: #e0e7ff; /* Soft indigo pastel */
+  top: -100px; left: -150px;
+}
+.shape-2 {
+  width: 500px; height: 500px;
+  background: #fdf4ff; /* Soft fuchsia pastel */
+  bottom: -150px; right: -100px;
 }
 
-.brand-content {
+/* Minimal Container */
+.login-container {
   position: relative;
   z-index: 1;
-  color: white;
   width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  padding: 48px;
+  border-radius: 24px;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.05),
+              0 0 0 1px rgba(0, 0, 0, 0.02);
+  animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.brand-icon {
-  width: 56px;
-  height: 56px;
-  background: rgba(255, 255, 255, 0.15);
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Brand Header */
+.brand-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.logo-box {
+  width: 52px; height: 52px;
+  margin: 0 auto 20px;
+  background: #111827;
+  color: #fff;
   border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
-  backdrop-filter: blur(4px);
+  box-shadow: 0 8px 16px -6px rgba(17, 24, 39, 0.4);
 }
-.brand-icon svg {
-  width: 30px;
-  height: 30px;
-  color: white;
-}
+.logo-box svg { width: 26px; height: 26px; stroke-width: 2; }
 
-.brand-title {
-  font-size: 32px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  margin: 0 0 4px 0;
-  color: white;
-}
-.brand-title span {
-  color: #a5b4fc;
-}
-
-.brand-subtitle {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.65);
-  margin: 0 0 32px 0;
-  font-weight: 400;
-  letter-spacing: 0.3px;
-}
-
-/* Stats row */
-.brand-stats {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 32px;
-  padding: 16px 0;
-  border-top: 1px solid rgba(255,255,255,0.12);
-  border-bottom: 1px solid rgba(255,255,255,0.12);
-}
-.brand-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.stat-number {
-  font-size: 15px;
-  font-weight: 700;
-  color: white;
-}
-.stat-label {
-  font-size: 11px;
-  color: rgba(255,255,255,0.55);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.brand-divider {
-  width: 1px;
-  height: 32px;
-  background: rgba(255,255,255,0.2);
-}
-
-/* Feature list */
-.feature-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.feature-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13.5px;
-  color: rgba(255, 255, 255, 0.8);
-}
-.feature-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #a5b4fc;
-  flex-shrink: 0;
-}
-
-/* ─── Form Panel (right) ─── */
-.form-panel {
-  flex: 0 0 420px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 44px;
-}
-
-.form-wrapper {
-  width: 100%;
-}
-
-.form-header {
-  margin-bottom: 28px;
-}
-.form-header h2 {
-  font-size: 24px;
-  font-weight: 700;
+.title {
+  font-size: 26px;
+  font-weight: 800;
   color: #111827;
-  margin: 0 0 6px 0;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.03em;
+  margin: 0 0 8px 0;
 }
-.form-header p {
+.title span {
+  color: #4f46e5;
+}
+.subtitle {
   font-size: 14px;
   color: #6b7280;
   margin: 0;
+  font-weight: 400;
 }
 
-/* ─── Form Fields ─── */
+/* Form */
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
 }
 
-.field-group {
+.input-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-.field-group label {
+.input-group label {
   font-size: 13px;
   font-weight: 600;
   color: #374151;
-  letter-spacing: 0.1px;
 }
 
-.input-wrap {
+.input-field {
   position: relative;
   display: flex;
   align-items: center;
-}
-
-.input-icon {
-  position: absolute;
-  left: 12px;
-  color: #9ca3af;
-  display: flex;
-  align-items: center;
-  pointer-events: none;
-  transition: color 0.2s;
-}
-.input-icon svg {
-  width: 17px;
-  height: 17px;
-}
-
-.input-wrap input {
-  width: 100%;
-  padding: 10px 40px 10px 40px;
-  font-size: 14px;
-  color: #111827;
   background: #f9fafb;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 10px;
-  box-sizing: border-box;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
   transition: all 0.2s ease;
-  outline: none;
 }
-.input-wrap input::placeholder {
-  color: #d1d5db;
+.input-field:hover {
+  background: #ffffff;
+  border-color: #d1d5db;
 }
-.input-wrap input:focus {
+.input-field:focus-within {
   background: #ffffff;
   border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-}
-.input-wrap input:focus ~ .input-icon,
-.input-wrap:focus-within .input-icon {
-  color: #4f46e5;
-}
-.input-wrap input:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
 }
 
-.toggle-password {
+.input-field .icon {
+  width: 20px; height: 20px;
+  color: #9ca3af;
+  position: absolute;
+  left: 14px;
+  transition: color 0.2s;
+}
+.input-field:focus-within .icon, .input-field.focused .icon {
+  color: #4f46e5;
+}
+
+.input-field input {
+  width: 100%;
+  padding: 12px 42px;
+  background: transparent;
+  border: none;
+  color: #1f2937;
+  font-size: 14.5px;
+  outline: none;
+  font-weight: 500;
+}
+.input-field input::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+/* Password Toggle */
+.btn-toggle {
   position: absolute;
   right: 12px;
   background: none;
   border: none;
   color: #9ca3af;
   cursor: pointer;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  border-radius: 4px;
-  transition: color 0.2s;
-}
-.toggle-password:hover {
-  color: #4f46e5;
-}
-.toggle-password svg {
-  width: 17px;
-  height: 17px;
-}
-
-/* ─── Form Options ─── */
-.form-options {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: -4px;
-}
-
-.remember-me {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #4b5563;
-  cursor: pointer;
-  user-select: none;
-}
-.remember-me input[type="checkbox"] {
-  display: none;
-}
-.checkbox-custom {
-  width: 16px;
-  height: 16px;
-  border: 1.5px solid #d1d5db;
-  border-radius: 4px;
-  background: #f9fafb;
+  padding: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
-  flex-shrink: 0;
+  border-radius: 8px;
+  transition: all 0.2s;
 }
-.remember-me input[type="checkbox"]:checked + .checkbox-custom {
-  background: #4f46e5;
-  border-color: #4f46e5;
+.btn-toggle:hover {
+  color: #4b5563;
+  background: #f3f4f6;
 }
-.remember-me input[type="checkbox"]:checked + .checkbox-custom::after {
-  content: '';
-  display: block;
-  width: 9px;
-  height: 5px;
-  border-left: 2px solid white;
-  border-bottom: 2px solid white;
-  transform: rotate(-45deg) translate(1px, -1px);
+.btn-toggle .icon {
+  position: relative; left: 0; width: 18px; height: 18px;
 }
 
-.forgot-password {
-  font-size: 13px;
-  color: #4f46e5;
-  text-decoration: none;
-  font-weight: 500;
-  transition: color 0.2s;
-}
-.forgot-password:hover {
-  color: #3730a3;
-  text-decoration: underline;
-}
-
-/* ─── Error Banner ─── */
-.error-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
+/* Error Alert */
+.error-box {
+  padding: 12px 16px;
   background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 10px;
+  border-radius: 12px;
   color: #dc2626;
   font-size: 13.5px;
-}
-.error-banner svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  color: #ef4444;
-}
-
-.shake-enter-active {
-  animation: shake 0.4s ease;
-}
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20%       { transform: translateX(-6px); }
-  40%       { transform: translateX(6px); }
-  60%       { transform: translateX(-4px); }
-  80%       { transform: translateX(4px); }
-}
-
-/* ─── Submit Button ─── */
-.login-btn {
-  width: 100%;
-  padding: 12px;
-  font-size: 14.5px;
-  font-weight: 600;
-  color: #ffffff;
-  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
-  margin-top: 4px;
-}
-.login-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%);
-  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.45);
-  transform: translateY(-1px);
-}
-.login-btn:active:not(:disabled) {
-  transform: translateY(0);
-}
-.login-btn:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-  box-shadow: none;
-  transform: none;
-}
-
-.btn-content,
-.btn-loading {
+  font-weight: 500;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
 }
-.btn-content svg {
-  width: 16px;
-  height: 16px;
-  transition: transform 0.2s;
+.error-box::before {
+  content: '!';
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 18px; height: 18px;
+  background: #dc2626;
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
 }
-.login-btn:hover:not(:disabled) .btn-content svg {
-  transform: translateX(3px);
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s, transform 0.3s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(-5px); }
+
+/* Submit Button */
+.btn-submit {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px -1px rgba(17, 24, 39, 0.1),
+              0 2px 4px -2px rgba(17, 24, 39, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.btn-submit:hover:not(:disabled) {
+  background: #1f2937;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 15px -3px rgba(17, 24, 39, 0.1),
+              0 4px 6px -4px rgba(17, 24, 39, 0.1);
+}
+.btn-submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+.btn-submit:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .spinner {
-  width: 18px;
-  height: 18px;
-  animation: spin 0.8s linear infinite;
+  width: 20px; height: 20px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 0.8s ease-in-out infinite;
 }
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-/* ─── Footer ─── */
-.form-footer {
-  margin-top: 28px;
+/* Footer */
+.footer-info {
+  margin-top: 32px;
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   color: #9ca3af;
 }
+.footer-info a {
+  color: #6b7280;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.footer-info a:hover {
+  color: #111827;
+}
 
-/* ─── Responsive ─── */
-@media (max-width: 720px) {
-  .brand-panel {
-    display: none;
-  }
-  .form-panel {
-    flex: 1;
-    padding: 40px 28px;
-  }
+/* Responsive */
+@media (max-width: 480px) {
   .login-container {
+    padding: 32px 24px;
     margin: 16px;
-    min-height: auto;
+    border-radius: 20px;
   }
 }
 </style>

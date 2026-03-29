@@ -3,7 +3,7 @@ const { AlertRule } = require('../ruleInterface.cjs')
 class OverdueMaintenanceRule extends AlertRule {
   constructor() {
     super()
-    this.name = 'Overdue Maintenance'
+    this.name = 'เลยกำหนดการซ่อมบำรุง'
     this.severity = 'CRITICAL'
   }
 
@@ -22,7 +22,7 @@ class OverdueMaintenanceRule extends AlertRule {
       severity: this.severity,
       affected_resource_type: 'MAINTENANCE',
       affected_resource_id: m.id,
-      message: `Maintenance for vehicle ${m.license_plate} (${m.type}) was scheduled on ${m.scheduled_at} and is now 3+ days overdue`,
+      message: `การซ่อมบำรุงสำหรับยานพาหนะ ${m.license_plate} (${m.type}) วันที่ ${m.scheduled_at} เลยกำหนดมาแล้วกว่า 3 วัน`,
       created_at: new Date(),
     }))
   }

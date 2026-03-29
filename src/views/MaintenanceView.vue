@@ -36,7 +36,8 @@
                 <th>ยานพาหนะ</th>
                 <th>ประเภท</th>
                 <th>กำหนดวันที่</th>
-                <th>สถานะการบำรุงรักษา</th>
+                <th>ช่าง</th>
+                <th>หมายเหตุ</th>
               </tr>
             </thead>
             <tbody>
@@ -54,11 +55,8 @@
                 </td>
                 <td>{{ getTypeLabel(item.type) }}</td>
                 <td>{{ formatDate(item.scheduled_at) }}</td>
-                <td>
-                  <span :class="['maintenance-status', item.status.toLowerCase()]">
-                    {{ getMaintenanceStatusLabel(item.status) }}
-                  </span>
-                </td>
+                <td>{{ item.technician || '-' }}</td>
+                <td>{{ item.notes || '-' }}</td>
               </tr>
             </tbody>
           </table>
@@ -391,7 +389,7 @@ h1 {
 
 .maintenance-table th {
   background: #f8fafc;
-  padding: 18px 24px;
+  padding: 18px 32px;
   text-align: left;
   font-size: 13px;
   font-weight: 600;
@@ -402,7 +400,7 @@ h1 {
 }
 
 .maintenance-table td {
-  padding: 16px 24px;
+  padding: 16px 32px;
   font-size: 14px;
   color: #334155;
   border-bottom: 1px solid #f1f5f9;

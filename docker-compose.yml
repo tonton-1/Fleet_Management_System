@@ -38,6 +38,10 @@ services:
       dockerfile: Dockerfile
     container_name: backend_app
     restart: always
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: sh -c "node swagger.cjs && node --watch server.cjs"
     ports:
       - '3000:3000'
     depends_on:
@@ -51,6 +55,7 @@ services:
       DB_NAME: '${DB_NAME}'
       JWT_ACCESS_SECRET: '${JWT_ACCESS_SECRET}'
       JWT_REFRESH_SECRET: '${JWT_REFRESH_SECRET}'
+      TZ: Asia/Bangkok
     networks:
       - app-network
 

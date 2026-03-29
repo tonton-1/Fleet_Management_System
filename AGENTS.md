@@ -1,79 +1,59 @@
 # Agents Working Notes
 
-## Alert Engine Implementation
+## 1. Alert Engine Implementation
 
-### 1. Database Schema
-
+### Database Schema
 - Created `alerts` table in MySQL with fields:
   - id, rule_name, severity, affected_resource_type, affected_resource_id, message, created_at, updated_at
   - UNIQUE constraint on (rule_name, affected_resource_id)
 
-### 2. Alert Engine Structure
-
-```
+### Alert Engine Structure
+```text
 src/alertEngine/
 ├── alertEngine.cjs         # Core Engine (auto-loads all rules from /rules)
 ├── ruleInterface.cjs      # Base class for rules
 └── rules/
-    ├── vehicleDueForService.cjs   # Rule 1: mileage_km >= next_service_km
-    ├── overdueMaintenance.cjs    # Rule 2: maintenance SCHEDULED > 3 days
-    ├── licenseExpiringSoon.cjs   # Rule 3: license expires within 30 days
-    └── tripDelayed.cjs           # Rule 4: trip IN_PROGRESS > 150% estimated duration
+    ├── vehicleDueForService.cjs   # แจ้งเตือน: ถึงรอบเช็คระยะ
+    ├── overdueMaintenance.cjs    # แจ้งเตือน: ซ่อมบำรุงล่าช้า
+    ├── licenseExpiringSoon.cjs   # แจ้งเตือน: ใบขับขี่ใกล้หมดอายุ
+    └── tripDelayed.cjs           # แจ้งเตือน: การเดินทางล่าช้า
 ```
 
-### 3. Key Features
+### Key Features
+- **Auto-loading**: Core engine loads all `.cjs` files in `/rules` folder automatically.
+- **Thai Localization**: All alert messages and rule names have been fully translated to Thai for frontend display.
+- **Background sync**: Runs every 60 seconds to evaluate all rules and sync to database.
 
-- **Auto-loading**: Core engine loads all `.cjs` files in `/rules` folder automatically
-- **Add new rule**: Simply create new file in `/rules` - no code changes needed in core
-- **Background sync**: Runs every 60 seconds to evaluate all rules and sync to database
-- **API**: `GET /alerts` with filters for `severity` and `resource_type`
+## 2. API & Backend Enhancements
 
-### 4. Frontend
+- **Timezone Support**: Backend and MySQL configured to `Asia/Bangkok` timezone resolving date discrepancies in Audit Logs and database timestamps.
+- **Auto-Increment IDs**: `POST /trips` endpoint modified to automatically generate sequentially incremented IDs like `trp_001`, `trp_002` (per PDF assignment specs) instead of UUIDs.
+- **Hot-Reloading**: Backend container now mapped to local volume with `node --watch server.cjs` for instant development reloads.
 
-- Created `AlertsView.vue` with Thai language support
-- Filters: severity (คำเตือน/วิกฤต), resource_type (ยานพาหนะ/การบำรุงรักษา/คนขับ/การเดินทาง)
-- Added route in router and menu in Navbar
+## 3. Frontend Details
 
-### 5. Test Data
+- **Login UI**: Completely redesigned to a highly premium "Minimal White" theme with subtle aesthetics and dark accents. Removed unused options like "Remember me" and "Forgot password" to keep it highly minimalistic.
+- **AlertsView.vue**: Features Thai language support with filtering for severity (`คำเตือน`/`วิกฤต`) and resource types.
+- **TripsView.vue**: Contains optimistic UI updating for Checkpoint statuses (`PENDING`, `ARRIVED`, `DEPARTED`, `SKIPPED`). Removed artificial simulated 30% network failure rate for smooth local testing.
 
-```sql
--- Vehicle Due for Service
-INSERT INTO vehicles (id, license_plate, type, status, mileage_km, next_service_km)
-VALUES ('veh_test1', 'กท-1111', 'TRUCK', 'IDLE', 50000, 45000);
-
--- Overdue Maintenance
-INSERT INTO vehicles (id, license_plate, type, status)
-VALUES ('veh_test2', 'กท-2222', 'VAN', 'MAINTENANCE');
-INSERT INTO maintenance (id, vehicle_id, status, type, scheduled_at)
-VALUES ('mnt_test1', 'veh_test2', 'SCHEDULED', 'OIL_CHANGE', '2024-01-01 09:00:00');
-
--- License Expiring Soon
-INSERT INTO drivers (id, name, license_number, license_expires_at, phone, status)
-VALUES ('drv_test1', 'สมชาย', '123456789', DATE_ADD(CURDATE(), INTERVAL 15 DAY), '0812345678', 'ACTIVE');
-```
-
-### 6. Docker Commands
+## 4. Docker Commands (Current Flow)
 
 ```bash
-# Rebuild backend with new code
-docker-compose build backend
-docker-compose up -d backend
+# Start all containers in background
+docker-compose up -d
 
-# Build frontend
-docker-compose build frontend
+# NOTE: Thanks to Volume Mapping (`.:/app`) and `node --watch`, backend changes instantly sync!
+# You do NOT need to run `docker-compose build backend` anymore when editing JS files.
 
-# Run frontend locally (not in docker)
+# Run frontend locally for instant UI development
 npm run dev
 ```
 
-### 7. API Endpoints
+## 5. Completed & Remaining Tasks
 
-- `POST /auth/login` - Login
-- `GET /alerts` - Get alerts with filters
-  - Query params: `?severity=WARNING|CRITICAL`, `?resource_type=VEHICLE|MAINTENANCE|DRIVER|TRIP`
-
-## Remaining Tasks
-
-- [ ] Trip Delayed alert (needs trip running > 150% estimated duration)
-- [ ] Audit Log implementation
+- [x] Fix Trip Auto-Increment IDs (trp_001)
+- [x] Alert Engine UI & Thai Translations completed
+- [x] Audit Log timezone discrepancies fixed
+- [x] Login UI Redesign (Minimal White theme completed)
+- [ ] Add overarching Trip Status controls (e.g. manually Start, Complete, or Cancel trips)
 - [ ] Dashboard charts (vehicles by status, trip distance trend)

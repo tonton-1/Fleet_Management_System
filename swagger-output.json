@@ -224,6 +224,18 @@
             "schema": {
               "type": "object",
               "properties": {
+                "name": {
+                  "example": "any"
+                },
+                "license_number": {
+                  "example": "any"
+                },
+                "license_expires_at": {
+                  "example": "any"
+                },
+                "phone": {
+                  "example": "any"
+                },
                 "status": {
                   "example": "any"
                 }
@@ -496,6 +508,27 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           }
         }
       }

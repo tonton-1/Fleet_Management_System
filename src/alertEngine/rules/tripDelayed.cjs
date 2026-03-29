@@ -3,7 +3,7 @@ const { AlertRule } = require('../ruleInterface.cjs')
 class TripDelayedRule extends AlertRule {
   constructor() {
     super()
-    this.name = 'Trip Delayed'
+    this.name = 'การเดินทางล่าช้ากว่ากำหนด'
     this.severity = 'WARNING'
   }
 
@@ -36,7 +36,7 @@ class TripDelayedRule extends AlertRule {
           severity: this.severity,
           affected_resource_type: 'TRIP',
           affected_resource_id: trip.id,
-          message: `Trip ${trip.id} for vehicle ${trip.license_plate} (driver: ${trip.driver_name}) has exceeded 150% of estimated duration (${Math.round(elapsedMinutes)}min vs ${Math.round(maxAllowedMinutes)}min estimated)`,
+          message: `การเดินทาง ${trip.id} ของรถ ${trip.license_plate} (คนขับ: ${trip.driver_name}) ใช้เวลาเกิน 150% ของที่คาดไว้ (${Math.round(elapsedMinutes)} นาที จากที่คาดไว้ ${Math.round(maxAllowedMinutes)} นาที)`,
           created_at: now,
         })
       }

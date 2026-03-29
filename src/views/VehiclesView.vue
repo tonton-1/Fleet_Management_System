@@ -37,13 +37,13 @@ const updateURL = () => {
 const filteredVehicles = computed(() => {
   return vehicles.value.filter((v) => {
     if (filters.value.status && v.status !== filters.value.status) return false
-    if (filters.value.type && v.type !== filters.value.type)
-      if (filters.value.driver) {
-        const driverMatch =
-          v.driver_id === filters.value.driver ||
-          v.driver_name?.toLowerCase().includes(filters.value.driver.toLowerCase())
-        if (!driverMatch) return false
-      }
+    if (filters.value.type && v.type !== filters.value.type) return false
+    if (filters.value.driver) {
+      const driverMatch =
+        v.driver_id === filters.value.driver ||
+        v.driver_name?.toLowerCase().includes(filters.value.driver.toLowerCase())
+      if (!driverMatch) return false
+    }
     if (filters.value.search) {
       const search = filters.value.search.toLowerCase()
       const match =
@@ -65,6 +65,58 @@ const editForm = ref({
   status: '',
   driver_id: '',
 })
+
+// สถานะของ Modal เพิ่ม
+const isAddModalOpen = ref(false)
+const addForm = ref({
+  license_plate: '',
+  type: 'TRUCK',
+  status: 'IDLE',
+  driver_id: '',
+  context: {
+    brand: '',
+    model: '',
+    year: '',
+    fuel_type: 'DIESEL',
+    mileage_km: 0,
+    next_service_km: '',
+  },
+})
+
+const openAddModal = () => {
+  addForm.value = {
+    license_plate: '',
+    type: 'TRUCK',
+    status: 'IDLE',
+    driver_id: '',
+    context: {
+      brand: '',
+      model: '',
+      year: '',
+      fuel_type: 'DIESEL',
+      mileage_km: 0,
+      next_service_km: '',
+    },
+  }
+  isAddModalOpen.value = true
+}
+
+const closeAddModal = () => {
+  isAddModalOpen.value = false
+}
+
+const saveNewVehicle = async () => {
+  try {
+    isSaving.value = true
+    await apiClient.post('/vehicles', addForm.value)
+    closeAddModal()
+    await fetchVehicles()
+  } catch (error) {
+    alert('Failed to create vehicle: ' + (error.response?.data?.error?.message || error.message))
+  } finally {
+    isSaving.value = false
+  }
+}
 
 // ฟังก์ชันสำหรับถอดรหัส JWT Token แบบง่ายๆ ฝั่ง Frontend
 const decodeToken = (token) => {
@@ -163,6 +215,15 @@ const saveVehicle = async () => {
 // Computed property เพื่อเช็คว่าเป็น Admin หรือไม่
 const isAdmin = computed(() => currentUserRole.value === 'ADMIN')
 
+const statusLabels = {
+  ACTIVE: 'ใช้งาน',
+  IDLE: 'ว่าง',
+  MAINTENANCE: 'ซ่อมบำรุง',
+  RETIRED: 'เลิกใช้',
+}
+
+const getStatusLabel = (status) => statusLabels[status] || status
+
 onMounted(() => {
   // ดึง token และหา role ของ user ปัจจุบัน
   const token = localStorage.getItem('accessToken')
@@ -189,62 +250,118 @@ watch(
 
 <template>
   <div class="vehicles-page">
-    <div v-if="isLoading" class="loading-message">Loading vehicle data...</div>
+    <div v-if="isLoading" class="loading-message">
+      <div class="spinner"></div>
+      <span>กำลังโหลดข้อมูล...</span>
+    </div>
     <div v-else-if="errorMessage" class="error-message">{{ errorMessage }}</div>
     <div v-else class="table-container">
       <div class="header-actions">
-        <h2>All Vehicles</h2>
+        <h2>ยานพาหนะ</h2>
+        <button v-if="isAdmin" @click="openAddModal" class="btn-add">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="2"
+            stroke="currentColor"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m6-6h-15" />
+          </svg>
+          เพิ่มยานพาหนะ
+        </button>
       </div>
 
       <div class="filters">
         <select v-model="filters.status">
-          <option value="">All Status</option>
-          <option value="IDLE">Idle</option>
-          <option value="ACTIVE">Active</option>
-          <option value="MAINTENANCE">Maintenance</option>
-          <option value="RETIRED">Retired</option>
+          <option value="">ทุกสถานะ</option>
+          <option value="IDLE">ว่าง</option>
+          <option value="ACTIVE">ใช้งาน</option>
+          <option value="MAINTENANCE">ซ่อมบำรุง</option>
+          <option value="RETIRED">เลิกใช้</option>
         </select>
         <select v-model="filters.type">
-          <option value="">All Types</option>
-          <option value="TRUCK">Truck</option>
-          <option value="VAN">Van</option>
-          <option value="MOTORCYCLE">Motorcycle</option>
-          <option value="PICKUP">Pickup</option>
+          <option value="">ทุกประเภท</option>
+          <option value="TRUCK">รถบรรทุก</option>
+          <option value="VAN">รถตู้</option>
+          <option value="MOTORCYCLE">มอเตอร์ไซค์</option>
+          <option value="PICKUP">รถกระบะ</option>
         </select>
-        <input type="text" v-model="filters.search" placeholder="Search license, brand, model..." />
+        <input type="text" v-model="filters.search" placeholder="ค้นหาป้ายทะเบียน ยี่ห้อ รุ่น..." />
       </div>
 
       <table>
         <thead>
           <tr>
-            <th>License Plate</th>
-            <th>Type</th>
-            <th>Status</th>
-            <th>Driver</th>
-            <th>Model</th>
-            <th>Actions</th>
+            <th>ยานพาหนะ</th>
+            <th>ประเภท</th>
+            <th>สถานะ</th>
+            <th>คนขับ</th>
+            <th>ข้อมูล</th>
+            <th>เลขไมล์</th>
+            <th>จัดการ</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="vehicle in filteredVehicles" :key="vehicle.id">
-            <td>{{ vehicle.license_plate }}</td>
-            <td>{{ vehicle.type }}</td>
+            <td>
+              <div class="vehicle-info">
+                <span class="license-plate">{{ vehicle.license_plate }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="type-badge">{{ vehicle.type }}</span>
+            </td>
             <td>
               <span :class="['status-badge', `status-${vehicle.status.toLowerCase()}`]">
-                {{ vehicle.status }}
+                {{ getStatusLabel(vehicle.status) }}
               </span>
             </td>
-            <td>{{ vehicle.driver_name || 'N/A' }}</td>
-            <td>{{ vehicle.brand || '' }} {{ vehicle.model || '' }}</td>
+            <td>{{ vehicle.driver_name || '-' }}</td>
+            <td>
+              <span class="vehicle-detail"
+                >{{ vehicle.brand || '-' }} {{ vehicle.model || '' }}</span
+              >
+            </td>
+            <td>
+              <span class="mileage">{{ vehicle.mileage_km?.toLocaleString() || 0 }} กม.</span>
+            </td>
             <td class="action-cell">
-              <button @click="openEditModal(vehicle)" class="btn-edit">Edit</button>
-              <!-- แสดงปุ่ม Delete เฉพาะเมื่อ isAdmin เป็น true -->
+              <button @click="openEditModal(vehicle)" class="btn-edit">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
+                  />
+                </svg>
+                แก้ไข
+              </button>
               <button
                 v-if="isAdmin"
                 @click="deleteVehicle(vehicle.id, vehicle.license_plate)"
                 class="btn-delete"
               >
-                Delete
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+                  />
+                </svg>
+                ลบ
               </button>
             </td>
           </tr>
@@ -287,52 +404,222 @@ watch(
         </form>
       </div>
     </div>
+
+    <!-- Modal สำหรับเพิ่มยานพาหนะใหม่ -->
+    <div v-if="isAddModalOpen" class="modal-overlay">
+      <div class="modal-content modal-lg">
+        <h3>เพิ่มยานพาหนะใหม่</h3>
+        <form @submit.prevent="saveNewVehicle">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="add-license">ป้ายทะเบียน *</label>
+              <input
+                id="add-license"
+                v-model="addForm.license_plate"
+                required
+                placeholder="เช่น กท-1234"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="add-type">ประเภท *</label>
+              <select id="add-type" v-model="addForm.type" required>
+                <option value="TRUCK">TRUCK</option>
+                <option value="VAN">VAN</option>
+                <option value="MOTORCYCLE">MOTORCYCLE</option>
+                <option value="PICKUP">PICKUP</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="add-status">สถานะ</label>
+              <select id="add-status" v-model="addForm.status">
+                <option value="IDLE">IDLE</option>
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="MAINTENANCE">MAINTENANCE</option>
+                <option value="RETIRED">RETIRED</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="add-driver">มอบหมายคนขับ</label>
+              <select id="add-driver" v-model="addForm.driver_id">
+                <option value="">-- ไม่มีคนขับ --</option>
+                <option v-for="driver in drivers" :key="driver.id" :value="driver.id">
+                  {{ driver.name }} ({{ driver.license_number }})
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="add-brand">ยี่ห้อ</label>
+              <input id="add-brand" v-model="addForm.context.brand" placeholder="เช่น Isuzu" />
+            </div>
+
+            <div class="form-group">
+              <label for="add-model">รุ่น</label>
+              <input id="add-model" v-model="addForm.context.model" placeholder="เช่น D-Max" />
+            </div>
+
+            <div class="form-group">
+              <label for="add-year">ปี</label>
+              <input
+                id="add-year"
+                v-model="addForm.context.year"
+                type="number"
+                placeholder="เช่น 2024"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="add-fuel">ประเภทน้ำมัน</label>
+              <select id="add-fuel" v-model="addForm.context.fuel_type">
+                <option value="DIESEL">DIESEL</option>
+                <option value="GASOLINE">GASOLINE</option>
+                <option value="ELECTRIC">ELECTRIC</option>
+                <option value="HYBRID">HYBRID</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="add-mileage">เลขไมล์ (กม.)</label>
+              <input id="add-mileage" v-model.number="addForm.context.mileage_km" type="number" />
+            </div>
+
+            <div class="form-group">
+              <label for="add-next-service">กำหนดรับบริการครั้งต่อไป (กม.)</label>
+              <input
+                id="add-next-service"
+                v-model.number="addForm.context.next_service_km"
+                type="number"
+                placeholder="เช่น 50000"
+              />
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" @click="closeAddModal" class="btn-cancel">ยกเลิก</button>
+            <button type="submit" class="btn-save" :disabled="isSaving">
+              {{ isSaving ? 'กำลังบันทึก...' : 'บันทึก' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .vehicles-page {
-  /* Removed layout logic since MainLayout handles it now */
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  color: #374151;
 }
 
 .header-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 24px;
+}
+
+h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.025em;
+}
+
+.btn-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow:
+    0 4px 6px -1px rgba(59, 130, 246, 0.2),
+    0 2px 4px -2px rgba(59, 130, 246, 0.2);
+}
+
+.btn-add svg {
+  width: 20px;
+  height: 20px;
+}
+
+.btn-add:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow:
+    0 6px 8px -1px rgba(59, 130, 246, 0.3),
+    0 4px 6px -2px rgba(59, 130, 246, 0.2);
 }
 
 .filters {
   display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-  padding: 12px;
-  background: #f9fafb;
-  border-radius: 8px;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  flex-wrap: wrap;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .filters select,
 .filters input {
-  padding: 8px 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
   font-size: 14px;
+  background: #f9fafb;
+  color: #374151;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.filters select:hover,
+.filters input:hover {
+  border-color: #9ca3af;
+}
+
+.filters select:focus,
+.filters input:focus {
+  outline: none;
+  background: white;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
 }
 
 .filters input {
   flex: 1;
-}
-
-h2 {
-  margin: 0;
-  color: #2d3748;
+  min-width: 240px;
 }
 
 .table-container {
-  background-color: #fff;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  background: white;
+  border-radius: 12px;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f3f4f6;
+  overflow: hidden;
 }
 
 table {
@@ -340,162 +627,388 @@ table {
   border-collapse: collapse;
 }
 
-th,
-td {
-  padding: 1rem;
-  text-align: left;
-  border-bottom: 1px solid #e2e8f0;
+thead {
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 th {
+  padding: 16px 24px;
+  text-align: left;
+  font-size: 12px;
   font-weight: 600;
-  color: #4a5568;
-  background-color: #f7fafc;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+td {
+  padding: 16px 24px;
+  font-size: 14px;
+  color: #111827;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+
+tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.vehicle-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.license-plate {
+  font-weight: 700;
+  color: #111827;
+  font-size: 15px;
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.status-badge.status-active {
+  background: #ecfdf5;
+  color: #059669;
+}
+.status-badge.status-active::before {
+  background: #059669;
+}
+
+.status-badge.status-idle {
+  background: #eff6ff;
+  color: #2563eb;
+}
+.status-badge.status-idle::before {
+  background: #2563eb;
+}
+
+.status-badge.status-maintenance {
+  background: #fffbeb;
+  color: #d97706;
+}
+.status-badge.status-maintenance::before {
+  background: #d97706;
+}
+
+.status-badge.status-retired {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+.status-badge.status-retired::before {
+  background: #6b7280;
+}
+
+.vehicle-detail {
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.mileage {
+  font-weight: 500;
+  color: #4b5563;
+  background: #f3f4f6;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
 }
 
 .action-cell {
   display: flex;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .btn-edit,
 .btn-delete {
-  padding: 0.4rem 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
   border: none;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  font-weight: 500;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.2s;
+}
+
+.btn-edit svg,
+.btn-delete svg {
+  width: 16px;
+  height: 16px;
 }
 
 .btn-edit {
-  background-color: #ebf8ff;
-  color: #3182ce;
+  background: #eff6ff;
+  color: #2563eb;
 }
 .btn-edit:hover {
-  opacity: 0.8;
+  background: #dbecfe;
 }
 
 .btn-delete {
-  background-color: #fed7d7;
-  color: #e53e3e;
+  background: #fef2f2;
+  color: #dc2626;
 }
 .btn-delete:hover {
-  opacity: 0.8;
+  background: #fee2e2;
 }
 
-.status-badge {
-  padding: 0.35rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.8rem;
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: slideUp 0.3s ease-out;
+}
+
+.modal-content.modal-lg {
+  max-width: 650px;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-content h3 {
+  font-size: 20px;
   font-weight: 600;
-  color: #fff;
+  color: #111827;
+  margin: 0;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #f3f4f6;
 }
 
-.status-active {
-  background-color: #48bb78;
+form {
+  padding: 24px;
 }
-.status-idle {
-  background-color: #a0aec0;
+
+/* Grid layout for complex forms */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 20px;
 }
-.status-maintenance {
-  background-color: #ecc94b;
-  color: #744210;
+
+.form-group {
+  margin-bottom: 16px;
 }
-.status-retired {
-  background-color: #f56565;
+.form-grid .form-group {
+  margin-bottom: 0; /* Let gap handle spacing */
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5563;
+  margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #111827;
+  background: #fff;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.form-group input:hover,
+.form-group select:hover {
+  border-color: #9ca3af;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid #f3f4f6;
+  grid-column: 1 / -1;
+}
+
+.btn-cancel,
+.btn-save {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel {
+  background: white;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+}
+
+.btn-cancel:hover {
+  background: #f9fafb;
+  color: #111827;
+}
+
+.btn-save {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);
+}
+
+.btn-save:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .loading-message,
 .error-message {
   text-align: center;
-  padding: 2rem;
-  background-color: white;
-  border-radius: 8px;
+  padding: 80px 40px;
+  color: #4b5563;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .error-message {
-  color: #e53e3e;
+  color: #dc2626;
+  background: #fef2f2;
 }
 
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
+@media (max-width: 768px) {
+  .filters {
+    flex-direction: column;
+  }
 
-.modal-content {
-  background-color: white;
-  padding: 2rem;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 400px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
+  .filters input,
+  .filters select {
+    min-width: 100%;
+    width: 100%;
+  }
 
-.modal-content h3 {
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-  color: #2d3748;
-}
+  .table-container {
+    overflow-x: auto;
+  }
 
-.form-group {
-  margin-bottom: 1.25rem;
-}
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 
-.form-group label {
-  display: block;
-  font-size: 0.9rem;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: #4a5568;
-}
-
-.form-group select {
-  width: 100%;
-  padding: 0.6rem;
-  border: 1px solid #cbd5e0;
-  border-radius: 4px;
-  background-color: #fff;
-  font-size: 0.95rem;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 2rem;
-}
-
-.btn-cancel {
-  padding: 0.5rem 1rem;
-  border: 1px solid #cbd5e0;
-  background-color: white;
-  color: #4a5568;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-save {
-  padding: 0.5rem 1rem;
-  background-color: #3182ce;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-save:disabled {
-  background-color: #a0aec0;
-  cursor: not-allowed;
+  .modal-content {
+    margin: 0 16px;
+    height: auto;
+    max-height: 90vh;
+  }
 }
 </style>

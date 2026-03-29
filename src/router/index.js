@@ -6,6 +6,8 @@ import VehiclesView from '../views/VehiclesView.vue'
 import DriversView from '../views/DriversView.vue'
 import TripsView from '../views/TripsView.vue'
 import AlertsView from '../views/AlertsView.vue'
+import MaintenanceView from '../views/MaintenanceView.vue'
+import AuditLogsView from '../views/AuditLogsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -44,6 +46,16 @@ const router = createRouter({
           path: 'alerts',
           name: 'alerts',
           component: AlertsView,
+        },
+        {
+          path: 'maintenance',
+          name: 'maintenance',
+          component: MaintenanceView,
+        },
+        {
+          path: 'audit-logs',
+          name: 'audit-logs',
+          component: AuditLogsView,
         },
       ],
     },

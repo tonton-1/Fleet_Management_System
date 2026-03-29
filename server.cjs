@@ -54,6 +54,7 @@ const authenticateToken = (req, res, next) => {
       )
     }
     req.user = user
+    setCurrentUserId(user.id)
     next()
   })
 }
@@ -76,6 +77,41 @@ const requireRole = (...allowedRoles) => {
   }
 }
 
+// Audit Log Middleware (Append-only)
+const logAudit = async (action, resourceType, resourceId, result, detail = null) => {
+  try {
+    const id = crypto.randomUUID()
+    const userId = (await getCurrentUserId()) || null
+
+    await pool.query(
+      `INSERT INTO audit_logs (id, user_id, action, resource_type, resource_id, result, detail, ip_address)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        userId,
+        action,
+        resourceType,
+        resourceId,
+        result,
+        detail ? JSON.stringify(detail) : null,
+        null,
+      ],
+    )
+  } catch (err) {
+    console.error('[Audit] Failed to log:', err.message)
+  }
+}
+
+let currentUserId = null
+
+const setCurrentUserId = (userId) => {
+  currentUserId = userId
+}
+
+const getCurrentUserId = () => {
+  return currentUserId
+}
+
 // POST /auth/login endpoint
 app.post('/auth/login', async (req, res) => {
   const { username, password } = req.body
@@ -88,6 +124,7 @@ app.post('/auth/login', async (req, res) => {
     const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username])
 
     if (rows.length === 0) {
+      await logAudit('LOGIN_FAIL', 'AUTH', null, 'FAIL', { username })
       return sendError(res, 401, 'UNAUTHORIZED', 'Invalid username or password')
     }
 
@@ -95,12 +132,15 @@ app.post('/auth/login', async (req, res) => {
     const match = await bcrypt.compare(password, user.password_hash)
 
     if (!match) {
+      await logAudit('LOGIN_FAIL', 'AUTH', null, 'FAIL', { username })
       return sendError(res, 401, 'UNAUTHORIZED', 'Invalid username or password')
     }
 
     const payload = { id: user.id, username: user.username, role: user.role }
     const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: '15m' })
     const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' })
+
+    await logAudit('LOGIN_SUCCESS', 'AUTH', user.id, 'SUCCESS', { username, role: user.role })
 
     res.json({
       access_token: accessToken,
@@ -227,6 +267,8 @@ app.post('/vehicles', authenticateToken, async (req, res) => {
     }
 
     res.status(201).json(responsePayload)
+
+    await logAudit('CREATE_VEHICLE', 'VEHICLE', finalId, 'SUCCESS', { license_plate, type })
   } catch (error) {
     console.error(error)
     if (error.code === 'ER_DUP_ENTRY') {
@@ -256,6 +298,22 @@ app.get('/dashboard', authenticateToken, async (req, res) => {
       FROM vehicles
     `)
 
+    const [activeTripsStats] = await pool.query(`
+      SELECT 
+        COUNT(*) as active_trips_count,
+        COALESCE(SUM(distance_km), 0) as total_distance_today
+      FROM trips 
+      WHERE DATE(created_at) = CURDATE() 
+        AND status IN ('SCHEDULED', 'IN_PROGRESS')
+    `)
+
+    const [overdueMaintenance] = await pool.query(`
+      SELECT COUNT(*) as overdue_count
+      FROM maintenance
+      WHERE status = 'OVERDUE'
+        OR (status = 'SCHEDULED' AND DATE(scheduled_at) < CURDATE())
+    `)
+
     const [activeTrips] = await pool.query(`
       SELECT t.id, t.origin, t.destination, t.status, v.license_plate, d.name as driver_name
       FROM trips t
@@ -276,13 +334,87 @@ app.get('/dashboard', authenticateToken, async (req, res) => {
     `)
 
     res.json({
-      stats: fleetStats[0],
+      stats: {
+        ...fleetStats[0],
+        active_trips_count: activeTripsStats[0].active_trips_count || 0,
+        total_distance_today: activeTripsStats[0].total_distance_today || 0,
+        overdue_maintenance_count: overdueMaintenance[0].overdue_count || 0,
+      },
       active_trips: activeTrips,
       maintenance_alerts: maintenanceAlerts,
     })
   } catch (err) {
     console.error(err)
     return sendError(res, 500, 'INTERNAL_SERVER_ERROR', 'Failed to fetch dashboard data')
+  }
+})
+
+// GET /charts/vehicles-by-status endpoint
+app.get('/charts/vehicles-by-status', authenticateToken, async (req, res) => {
+  try {
+    const [results] = await pool.query(`
+      SELECT status, COUNT(*) as count
+      FROM vehicles
+      GROUP BY status
+    `)
+
+    const data = {
+      ACTIVE: 0,
+      IDLE: 0,
+      MAINTENANCE: 0,
+      RETIRED: 0,
+    }
+
+    results.forEach((row) => {
+      if (data.hasOwnProperty(row.status)) {
+        data[row.status] = row.count
+      }
+    })
+
+    res.json(data)
+  } catch (err) {
+    console.error(err)
+    return sendError(res, 500, 'INTERNAL_SERVER_ERROR', 'Failed to fetch vehicles by status')
+  }
+})
+
+// GET /charts/trip-distance-trend endpoint
+app.get('/charts/trip-distance-trend', authenticateToken, async (req, res) => {
+  try {
+    const [results] = await pool.query(`
+      SELECT 
+        DATE(created_at) as date,
+        SUM(distance_km) as total_distance
+      FROM trips
+      WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        AND status = 'COMPLETED'
+      GROUP BY DATE(created_at)
+      ORDER BY date ASC
+    `)
+
+    const last7Days = []
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      const dateStr = d.toISOString().split('T')[0]
+      last7Days.push(dateStr)
+    }
+
+    const data = last7Days.map((date) => {
+      const found = results.find((r) => {
+        const rDate = new Date(r.date).toISOString().split('T')[0]
+        return rDate === date
+      })
+      return {
+        date,
+        distance: found ? parseFloat(found.total_distance) : 0,
+      }
+    })
+
+    res.json(data)
+  } catch (err) {
+    console.error(err)
+    return sendError(res, 500, 'INTERNAL_SERVER_ERROR', 'Failed to fetch trip distance trend')
   }
 })
 
@@ -532,6 +664,20 @@ app.patch('/vehicles/:id', authenticateToken, async (req, res) => {
       'UPDATE vehicles SET status = ?, driver_id = ?, updated_at = NOW() WHERE id = ?',
       [newStatus, newDriverId, id],
     )
+
+    if (status && status !== currentData.status) {
+      await logAudit('UPDATE_VEHICLE_STATUS', 'VEHICLE', id, 'SUCCESS', {
+        old_status: currentData.status,
+        new_status: status,
+      })
+    }
+    if (driver_id && driver_id !== currentData.driver_id) {
+      await logAudit('ASSIGN_DRIVER', 'VEHICLE', id, 'SUCCESS', {
+        old_driver_id: currentData.driver_id,
+        new_driver_id: driver_id,
+      })
+    }
+
     res.json({ message: 'Vehicle updated successfully' })
   } catch (err) {
     console.error(err)
@@ -563,6 +709,9 @@ app.delete('/vehicles/:id', authenticateToken, requireRole('ADMIN'), async (req,
     }
 
     await pool.query('DELETE FROM vehicles WHERE id = ?', [id])
+
+    await logAudit('DELETE_VEHICLE', 'VEHICLE', id, 'SUCCESS', { vehicle_id: id })
+
     res.status(204).send()
   } catch (err) {
     console.error(err)
@@ -616,6 +765,29 @@ app.get('/vehicles/:id/history', authenticateToken, async (req, res) => {
     return sendError(res, 500, 'INTERNAL_SERVER_ERROR', 'Failed to fetch vehicle history', {
       detail: err.message,
     })
+  }
+})
+
+// ==========================================
+// MAINTENANCE ENDPOINTS
+// ==========================================
+
+app.get('/maintenance', authenticateToken, async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        m.*,
+        v.license_plate,
+        v.type as vehicle_type
+      FROM maintenance m
+      LEFT JOIN vehicles v ON m.vehicle_id = v.id
+      ORDER BY m.scheduled_at ASC
+    `
+    const [rows] = await pool.query(query)
+    res.json(rows)
+  } catch (err) {
+    console.error(err)
+    return sendError(res, 500, 'INTERNAL_SERVER_ERROR', 'Failed to fetch maintenance data')
   }
 })
 
@@ -832,9 +1004,9 @@ app.patch(
       )
     }
 
-    const connection = await pool.getConnection()
-
+    let connection
     try {
+      connection = await pool.getConnection()
       await connection.beginTransaction()
 
       // 1. Fetch current trip details
@@ -886,22 +1058,62 @@ app.patch(
         )
       } else if (status === 'CANCELLED') {
         updateQuery += ', ended_at = NOW()'
-        // If it was in progress, release the vehicle
+
+        // If it was in progress, release the vehicle and update mileage
         if (currentTrip.status === 'IN_PROGRESS') {
-          await connection.query("UPDATE vehicles SET status = 'IDLE' WHERE id = ?", [
-            currentTrip.vehicle_id,
-          ])
+          const distance = parseFloat(currentTrip.distance_km) || 0
+
+          // Update vehicle: Set to IDLE and add distance to mileage (in transaction)
+          const [vehicleRows] = await connection.query(
+            'SELECT mileage_km, next_service_km FROM vehicles WHERE id = ?',
+            [currentTrip.vehicle_id],
+          )
+
+          if (vehicleRows.length > 0) {
+            const currentMileage = parseInt(vehicleRows[0].mileage_km) || 0
+            const nextService = parseInt(vehicleRows[0].next_service_km) || 0
+            const newMileage = currentMileage + distance
+
+            await connection.query(
+              "UPDATE vehicles SET status = 'IDLE', mileage_km = ? WHERE id = ?",
+              [newMileage, currentTrip.vehicle_id],
+            )
+
+            // Auto-create maintenance if mileage exceeds next_service_km (in transaction)
+            if (nextService > 0 && newMileage >= nextService) {
+              const [existingMaint] = await connection.query(
+                `SELECT id FROM maintenance 
+                 WHERE vehicle_id = ? AND status IN ('SCHEDULED', 'IN_PROGRESS')`,
+                [currentTrip.vehicle_id],
+              )
+
+              if (existingMaint.length === 0) {
+                const maintId = crypto.randomUUID()
+                await connection.query(
+                  `INSERT INTO maintenance (id, vehicle_id, status, type, scheduled_at) 
+                   VALUES (?, ?, 'SCHEDULED', 'INSPECTION', NOW())`,
+                  [maintId, currentTrip.vehicle_id],
+                )
+              }
+            }
+          }
         }
+
+        updateQuery += ', updated_at = NOW() WHERE id = ?'
+        queryParams.push(id)
+
+        // 3. Execute the update
+        await connection.query(updateQuery, queryParams)
+
+        await connection.commit()
+
+        await logAudit('UPDATE_TRIP_STATUS', 'TRIP', id, 'SUCCESS', {
+          old_status: currentTrip.status,
+          new_status: status,
+        })
+
+        res.json({ message: `Trip status updated to ${status} successfully` })
       }
-
-      updateQuery += ', updated_at = NOW() WHERE id = ?'
-      queryParams.push(id)
-
-      // 3. Execute the update
-      await connection.query(updateQuery, queryParams)
-
-      await connection.commit()
-      res.json({ message: `Trip status updated to ${status} successfully` })
     } catch (error) {
       await connection.rollback()
       console.error('Update Trip Status Error:', error)
@@ -909,7 +1121,7 @@ app.patch(
         detail: error.message,
       })
     } finally {
-      connection.release()
+      if (connection) connection.release()
     }
   },
 )
@@ -1005,6 +1217,14 @@ app.patch('/checkpoints/:id/status', authenticateToken, async (req, res) => {
     await connection.query(updateQuery, queryParams)
 
     await connection.commit()
+
+    await logAudit('UPDATE_CHECKPOINT_STATUS', 'CHECKPOINT', id, 'SUCCESS', {
+      trip_id,
+      sequence,
+      old_status: current_status,
+      new_status: status,
+    })
+
     res.json({ message: `Checkpoint status updated to ${status} successfully` })
   } catch (error) {
     await connection.rollback()
@@ -1060,6 +1280,58 @@ app.get('/alerts', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error(err)
     return sendError(res, 500, 'INTERNAL_SERVER_ERROR', 'Failed to fetch alerts')
+  }
+})
+
+// GET /audit-logs endpoint (Read-only, Append-only)
+app.get('/audit-logs', authenticateToken, async (req, res) => {
+  try {
+    const { action, resource_type, start_date, end_date, limit = 100 } = req.query
+
+    const userRole = req.user?.role
+    const currentUserId = req.user?.id
+
+    let query = 'SELECT * FROM audit_logs WHERE 1=1'
+    const params = []
+
+    // DISPATCHER can only see their own logs, ADMIN can see all
+    if (userRole === 'DISPATCHER') {
+      query += ' AND user_id = ?'
+      params.push(currentUserId)
+    } else if (req.query.user_id) {
+      // ADMIN can filter by user_id, but DISPATCHER cannot
+      query += ' AND user_id = ?'
+      params.push(req.query.user_id)
+    }
+
+    if (action) {
+      query += ' AND action = ?'
+      params.push(action)
+    }
+
+    if (resource_type) {
+      query += ' AND resource_type = ?'
+      params.push(resource_type)
+    }
+
+    if (start_date) {
+      query += ' AND created_at >= ?'
+      params.push(start_date)
+    }
+
+    if (end_date) {
+      query += ' AND created_at <= ?'
+      params.push(end_date)
+    }
+
+    query += ' ORDER BY created_at DESC LIMIT ?'
+    params.push(parseInt(limit) || 100)
+
+    const [rows] = await pool.query(query, params)
+    res.json(rows)
+  } catch (err) {
+    console.error(err)
+    return sendError(res, 500, 'INTERNAL_SERVER_ERROR', 'Failed to fetch audit logs')
   }
 })
 

@@ -1,12 +1,60 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import apiClient from '../api/axios' // Import the pre-configured axios instance
+import { ref, onMounted, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import apiClient from '../api/axios'
 
 const vehicles = ref([])
 const drivers = ref([]) // สำหรับเก็บรายชื่อคนขับใน dropdown
 const isLoading = ref(true)
 const errorMessage = ref('')
 const currentUserRole = ref('')
+const route = useRoute()
+const router = useRouter()
+
+const filters = ref({
+  status: '',
+  type: '',
+  driver: '',
+  search: '',
+})
+
+const initFiltersFromURL = () => {
+  filters.value.status = route.query.status || ''
+  filters.value.type = route.query.type || ''
+  filters.value.driver = route.query.driver || ''
+  filters.value.search = route.query.search || ''
+}
+
+const updateURL = () => {
+  const query = {}
+  if (filters.value.status) query.status = filters.value.status
+  if (filters.value.type) query.type = filters.value.type
+  if (filters.value.driver) query.driver = filters.value.driver
+  if (filters.value.search) query.search = filters.value.search
+  router.push({ query })
+}
+
+const filteredVehicles = computed(() => {
+  return vehicles.value.filter((v) => {
+    if (filters.value.status && v.status !== filters.value.status) return false
+    if (filters.value.type && v.type !== filters.value.type)
+      if (filters.value.driver) {
+        const driverMatch =
+          v.driver_id === filters.value.driver ||
+          v.driver_name?.toLowerCase().includes(filters.value.driver.toLowerCase())
+        if (!driverMatch) return false
+      }
+    if (filters.value.search) {
+      const search = filters.value.search.toLowerCase()
+      const match =
+        v.license_plate?.toLowerCase().includes(search) ||
+        v.brand?.toLowerCase().includes(search) ||
+        v.model?.toLowerCase().includes(search)
+      if (!match) return false
+    }
+    return true
+  })
+})
 
 // สถานะของ Modal แก้ไข
 const isEditModalOpen = ref(false)
@@ -125,9 +173,18 @@ onMounted(() => {
     }
   }
 
+  initFiltersFromURL()
   fetchVehicles()
   fetchDrivers() // ดึงข้อมูลคนขับเตรียมไว้สำหรับ Dropdown
 })
+
+watch(
+  filters,
+  () => {
+    updateURL()
+  },
+  { deep: true },
+)
 </script>
 
 <template>
@@ -137,7 +194,24 @@ onMounted(() => {
     <div v-else class="table-container">
       <div class="header-actions">
         <h2>All Vehicles</h2>
-        <!-- ปุ่ม Add Vehicle อาจจะแสดงเฉพาะ Admin ก็ได้ (ถ้าต้องการ) -->
+      </div>
+
+      <div class="filters">
+        <select v-model="filters.status">
+          <option value="">All Status</option>
+          <option value="IDLE">Idle</option>
+          <option value="ACTIVE">Active</option>
+          <option value="MAINTENANCE">Maintenance</option>
+          <option value="RETIRED">Retired</option>
+        </select>
+        <select v-model="filters.type">
+          <option value="">All Types</option>
+          <option value="TRUCK">Truck</option>
+          <option value="VAN">Van</option>
+          <option value="MOTORCYCLE">Motorcycle</option>
+          <option value="PICKUP">Pickup</option>
+        </select>
+        <input type="text" v-model="filters.search" placeholder="Search license, brand, model..." />
       </div>
 
       <table>
@@ -152,7 +226,7 @@ onMounted(() => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="vehicle in vehicles" :key="vehicle.id">
+          <tr v-for="vehicle in filteredVehicles" :key="vehicle.id">
             <td>{{ vehicle.license_plate }}</td>
             <td>{{ vehicle.type }}</td>
             <td>
@@ -225,7 +299,28 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.filters select,
+.filters input {
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.filters input {
+  flex: 1;
 }
 
 h2 {

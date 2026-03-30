@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import apiClient from '../api/axios'
 import Swal from 'sweetalert2'
@@ -18,6 +18,52 @@ const filters = ref({
   driver: '',
   search: '',
 })
+
+const isStatusOpen = ref(false)
+const isTypeOpen = ref(false)
+
+const statusOptions = [
+  { value: '', label: 'ทุกสถานะ', colorClass: 'status-gray' },
+  { value: 'IDLE', label: 'ว่าง', colorClass: 'status-idle' },
+  { value: 'ACTIVE', label: 'ใช้งาน', colorClass: 'status-active' },
+  { value: 'MAINTENANCE', label: 'ซ่อมบำรุง', colorClass: 'status-maintenance' },
+  { value: 'RETIRED', label: 'เลิกใช้', colorClass: 'status-retired' },
+]
+
+const typeOptions = [
+  { value: '', label: 'ทุกประเภท' },
+  { value: 'TRUCK', label: 'รถบรรทุก'},
+  { value: 'VAN', label: 'รถตู้'},
+  { value: 'MOTORCYCLE', label: 'มอเตอร์ไซค์'},
+  { value: 'PICKUP', label: 'รถกระบะ'},
+]
+
+const currentStatusOption = computed(() => {
+  return statusOptions.find(o => o.value === filters.value.status) || statusOptions[0]
+})
+
+const currentTypeOption = computed(() => {
+  return typeOptions.find(o => o.value === filters.value.type) || typeOptions[0]
+})
+
+const selectStatus = (val) => {
+  filters.value.status = val
+  isStatusOpen.value = false
+}
+
+const selectType = (val) => {
+  filters.value.type = val
+  isTypeOpen.value = false
+}
+
+const closeDropdowns = (e) => {
+  if (!e.target.closest('.custom-dropdown.status-filter')) {
+    isStatusOpen.value = false
+  }
+  if (!e.target.closest('.custom-dropdown.type-filter')) {
+    isTypeOpen.value = false
+  }
+}
 
 const initFiltersFromURL = () => {
   filters.value.status = route.query.status || ''
@@ -368,9 +414,14 @@ onMounted(() => {
     }
   }
 
+  document.addEventListener('click', closeDropdowns)
   initFiltersFromURL()
   fetchVehicles()
   fetchDrivers() // ดึงข้อมูลคนขับเตรียมไว้สำหรับ Dropdown
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeDropdowns)
 })
 
 watch(
@@ -406,21 +457,65 @@ watch(
         </button>
       </div>
 
-      <div class="filters">
-        <select v-model="filters.status">
-          <option value="">ทุกสถานะ</option>
-          <option value="IDLE">ว่าง</option>
-          <option value="ACTIVE">ใช้งาน</option>
-          <option value="MAINTENANCE">ซ่อมบำรุง</option>
-          <option value="RETIRED">เลิกใช้</option>
-        </select>
-        <select v-model="filters.type">
-          <option value="">ทุกประเภท</option>
-          <option value="TRUCK">รถบรรทุก</option>
-          <option value="VAN">รถตู้</option>
-          <option value="MOTORCYCLE">มอเตอร์ไซค์</option>
-          <option value="PICKUP">รถกระบะ</option>
-        </select>
+      <div class="filters"> 
+        <div class="custom-dropdown status-filter">
+          <div class="dropdown-trigger" @click="isStatusOpen = !isStatusOpen">
+            <span v-if="currentStatusOption.value !== ''" :class="['dot-indicator', currentStatusOption.colorClass]"></span>
+            <span>{{ currentStatusOption.label }}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="chevron" :class="{ 'chevron-up': isStatusOpen }">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+          <Transition name="fade-slide">
+            <div v-if="isStatusOpen" class="dropdown-menu">
+              <div 
+                v-for="opt in statusOptions" 
+                :key="opt.value" 
+                class="dropdown-item"
+                :class="{ 'active': filters.status === opt.value }"
+                @click="selectStatus(opt.value)"
+              >
+                <span v-if="opt.value !== ''" :class="['dot-indicator', opt.colorClass]"></span>
+                <span v-else class="dot-indicator empty-dot"></span>
+                {{ opt.label }}
+                <!-- Checkmark -->
+                <svg v-if="filters.status === opt.value" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="check-icon">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+          </Transition>
+        </div>
+
+        <div class="custom-dropdown type-filter">
+          <div class="dropdown-trigger" @click="isTypeOpen = !isTypeOpen">
+            <span v-if="currentTypeOption.value !== ''" :class="['dot-indicator', currentTypeOption.colorClass]"></span>
+            <span>{{ currentTypeOption.label }}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="chevron" :class="{ 'chevron-up': isTypeOpen }">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+          <Transition name="fade-slide">
+            <div v-if="isTypeOpen" class="dropdown-menu">
+              <div 
+                v-for="opt in typeOptions" 
+                :key="opt.value" 
+                class="dropdown-item"
+                :class="{ 'active': filters.type === opt.value }"
+                @click="selectType(opt.value)"
+              >
+                <span v-if="opt.value !== ''" :class="['dot-indicator', opt.colorClass]"></span>
+                <span v-else class="dot-indicator empty-dot"></span>
+                {{ opt.label }}
+                <!-- Checkmark -->
+                <svg v-if="filters.type === opt.value" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="check-icon">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+          </Transition>
+        </div>
+        
         <input type="text" v-model="filters.search" placeholder="ค้นหาป้ายทะเบียน ยี่ห้อ รุ่น..." />
       </div>
 
@@ -804,14 +899,13 @@ h2 {
   display: flex;
   gap: 16px;
   margin-bottom: 24px;
-  padding: 1.5rem;
-  background: #f8fafc;
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  
+  background: #ffffff;
+
   border-radius: 12px;
   flex-wrap: wrap;
 }
 
-.filters select,
 .filters input {
   padding: 12px 16px;
   border: 1px solid #e2e8f0;
@@ -820,26 +914,139 @@ h2 {
   background: #f8fafc;
   color: #334155;
   transition: all 0.2s;
-  flex: 1;
-  min-width: 150px;
-}
-
-.filters input {
-  min-width: 280px;
   flex: 2;
+  min-width: 280px;
+  box-sizing: border-box;
 }
 
-.filters select:hover,
 .filters input:hover {
   border-color: #cbd5e1;
   background: #fff;
 }
-.filters select:focus,
 .filters input:focus {
   outline: none;
   background: white;
   border-color: #3b82f6;
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.custom-dropdown {
+  position: relative;
+  flex: 1;
+  min-width: 150px;
+  user-select: none;
+}
+
+.dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  padding: 12px 16px;
+  border-radius: 9999px;
+  color: #4a5568;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.dropdown-trigger:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.chevron {
+  width: 14px;
+  height: 14px;
+  color: #a0aec0;
+  transition: transform 0.2s ease;
+  margin-left: auto;
+}
+
+.chevron-up {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  min-width: 100%;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  z-index: 50;
+  overflow: hidden;
+  padding: 0.5rem 0;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #4a5568;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  position: relative;
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background-color: #f7fafc;
+}
+
+.dropdown-item.active {
+  background-color: #ebf8ff;
+  color: #2b6cb0;
+}
+
+.check-icon {
+  width: 16px;
+  height: 16px;
+  color: #3182ce;
+  margin-left: auto;
+}
+
+.dot-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.empty-dot {
+  background-color: transparent;
+  border: 2px solid #cbd5e0;
+}
+
+.dot-indicator.status-gray { background-color: #94a3b8; }
+.dot-indicator.status-idle { background-color: #3b82f6; }
+.dot-indicator.status-active { background-color: #22c55e; }
+.dot-indicator.status-maintenance { background-color: #f59e0b; }
+.dot-indicator.status-retired { background-color: #64748b; }
+
+.dot-indicator.status-truck { background-color: #10b981; }
+.dot-indicator.status-van { background-color: #8b5cf6; }
+.dot-indicator.status-motorcycle { background-color: #ef4444; }
+.dot-indicator.status-pickup { background-color: #f97316; }
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
 }
 
 .has-error {
@@ -1263,7 +1470,7 @@ form {
     padding: 16px;
   }
   .filters input,
-  .filters select {
+  .custom-dropdown {
     min-width: 100%;
     width: 100%;
   }

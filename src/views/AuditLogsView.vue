@@ -25,31 +25,65 @@
     <div class="filters">
       <div class="filter-group">
         <label>การกระทำ</label>
-        <div class="select-wrapper">
-          <select v-model="filters.action" @change="fetchData">
-            <option value="">ทั้งหมด</option>
-            <option value="LOGIN_SUCCESS">Login สำเร็จ</option>
-            <option value="LOGIN_FAIL">Login ล้มเหลว</option>
-            <option value="CREATE_VEHICLE">สร้างยานพาหนะ</option>
-            <option value="UPDATE_VEHICLE_STATUS">อัปเดตสถานะยานพาหนะ</option>
-            <option value="ASSIGN_DRIVER">มอบหมายคนขับ</option>
-            <option value="DELETE_VEHICLE">ลบยานพาหนะ</option>
-            <option value="UPDATE_TRIP_STATUS">อัปเดตสถานะการเดินทาง</option>
-            <option value="UPDATE_CHECKPOINT_STATUS">อัปเดตจุดพัก</option>
-          </select>
+        <div class="custom-dropdown action-filter">
+          <div class="dropdown-trigger" @click="isActionOpen = !isActionOpen">
+            <span v-if="currentActionOption.value !== ''" :class="['dot-indicator', currentActionOption.colorClass]"></span>
+            <span>{{ currentActionOption.label }}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="chevron" :class="{ 'chevron-up': isActionOpen }">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+          <Transition name="fade-slide">
+            <div v-if="isActionOpen" class="dropdown-menu">
+              <div 
+                v-for="opt in actionOptions" 
+                :key="opt.value" 
+                class="dropdown-item"
+                :class="{ 'active': filters.action === opt.value }"
+                @click="selectAction(opt.value)"
+              >
+                <span v-if="opt.value !== ''" :class="['dot-indicator', opt.colorClass]"></span>
+                <span v-else class="dot-indicator empty-dot"></span>
+                {{ opt.label }}
+                <!-- Checkmark -->
+                <svg v-if="filters.action === opt.value" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="check-icon">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+          </Transition>
         </div>
       </div>
 
       <div class="filter-group">
         <label>ประเภท</label>
-        <div class="select-wrapper">
-          <select v-model="filters.resource_type" @change="fetchData">
-            <option value="">ทั้งหมด</option>
-            <option value="AUTH">การยืนยันตัวตน</option>
-            <option value="VEHICLE">ยานพาหนะ</option>
-            <option value="TRIP">การเดินทาง</option>
-            <option value="CHECKPOINT">จุดพัก</option>
-          </select>
+        <div class="custom-dropdown resource-filter">
+          <div class="dropdown-trigger" @click="isResourceOpen = !isResourceOpen">
+            <span v-if="currentResourceOption.value !== ''" :class="['dot-indicator', currentResourceOption.colorClass]"></span>
+            <span>{{ currentResourceOption.label }}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="chevron" :class="{ 'chevron-up': isResourceOpen }">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+          <Transition name="fade-slide">
+            <div v-if="isResourceOpen" class="dropdown-menu">
+              <div 
+                v-for="opt in resourceOptions" 
+                :key="opt.value" 
+                class="dropdown-item"
+                :class="{ 'active': filters.resource_type === opt.value }"
+                @click="selectResource(opt.value)"
+              >
+                <span v-if="opt.value !== ''" :class="['dot-indicator', opt.colorClass]"></span>
+                <span v-else class="dot-indicator empty-dot"></span>
+                {{ opt.label }}
+                <!-- Checkmark -->
+                <svg v-if="filters.resource_type === opt.value" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="check-icon">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+          </Transition>
         </div>
       </div>
 
@@ -164,7 +198,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { auditLogsApi } from '../api/auditLogs'
 
 const loading = ref(false)
@@ -177,6 +211,58 @@ const filters = ref({
   start_date: '',
   end_date: '',
 })
+
+const isActionOpen = ref(false)
+const isResourceOpen = ref(false)
+
+const actionOptions = [
+  { value: '', label: 'ทั้งหมด', colorClass: 'status-gray' },
+  { value: 'LOGIN_SUCCESS', label: 'Login สำเร็จ', colorClass: 'status-success' },
+  { value: 'LOGIN_FAIL', label: 'Login ล้มเหลว', colorClass: 'status-fail' },
+  { value: 'CREATE_VEHICLE', label: 'สร้างยานพาหนะ', colorClass: 'status-create' },
+  { value: 'UPDATE_VEHICLE_STATUS', label: 'อัปเดตสถานะยานพาหนะ', colorClass: 'status-update' },
+  { value: 'ASSIGN_DRIVER', label: 'มอบหมายคนขับ', colorClass: 'status-update' },
+  { value: 'DELETE_VEHICLE', label: 'ลบยานพาหนะ', colorClass: 'status-fail' },
+  { value: 'UPDATE_TRIP_STATUS', label: 'อัปเดตสถานะการเดินทาง', colorClass: 'status-update' },
+  { value: 'UPDATE_CHECKPOINT_STATUS', label: 'อัปเดตจุดพัก', colorClass: 'status-update' },
+]
+
+const resourceOptions = [
+  { value: '', label: 'ทั้งหมด'},
+  { value: 'AUTH', label: 'การยืนยันตัวตน'},
+  { value: 'VEHICLE', label: 'ยานพาหนะ'},
+  { value: 'TRIP', label: 'การเดินทาง'},
+  { value: 'CHECKPOINT', label: 'จุดพัก'},
+]
+
+const currentActionOption = computed(() => {
+  return actionOptions.find((o) => o.value === filters.value.action) || actionOptions[0]
+})
+
+const currentResourceOption = computed(() => {
+  return resourceOptions.find((o) => o.value === filters.value.resource_type) || resourceOptions[0]
+})
+
+const selectAction = (val) => {
+  filters.value.action = val
+  isActionOpen.value = false
+  fetchData()
+}
+
+const selectResource = (val) => {
+  filters.value.resource_type = val
+  isResourceOpen.value = false
+  fetchData()
+}
+
+const closeDropdowns = (e) => {
+  if (!e.target.closest('.custom-dropdown.action-filter')) {
+    isActionOpen.value = false
+  }
+  if (!e.target.closest('.custom-dropdown.resource-filter')) {
+    isResourceOpen.value = false
+  }
+}
 
 const actionLabels = {
   LOGIN_SUCCESS: 'Login สำเร็จ',
@@ -251,7 +337,12 @@ const fetchData = async () => {
 }
 
 onMounted(() => {
+  document.addEventListener('click', closeDropdowns)
   fetchData()
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeDropdowns)
 })
 </script>
 
@@ -284,6 +375,7 @@ h1 {
   letter-spacing: -0.025em;
   background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -364,12 +456,6 @@ h1 {
   color: #475569;
 }
 
-.select-wrapper {
-  position: relative;
-  width: 100%;
-}
-
-.filters select,
 .filters input {
   width: 100%;
   padding: 12px 16px;
@@ -382,34 +468,132 @@ h1 {
   box-sizing: border-box;
 }
 
-.filters select {
-  cursor: pointer;
-  appearance: none;
-}
-
-.select-wrapper::after {
-  content: '▼';
-  font-size: 10px;
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  color: #94a3b8;
-}
-
-.filters select:hover,
 .filters input:hover {
   background-color: #fff;
   border-color: #cbd5e1;
 }
 
-.filters select:focus,
 .filters input:focus {
   outline: none;
   background-color: #fff;
   border-color: #3b82f6;
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.custom-dropdown {
+  position: relative;
+  width: 100%;
+  user-select: none;
+}
+
+.dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #f8fafc;
+  border: 1px solid transparent;
+  padding: 10px 16px;
+  border-radius: 9999px;
+  color: #4a5568;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.dropdown-trigger:hover {
+  background-color: #edf2f7;
+}
+
+.chevron {
+  width: 14px;
+  height: 14px;
+  color: #a0aec0;
+  transition: transform 0.2s ease;
+  margin-left: auto;
+}
+
+.chevron-up {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  min-width: 100%;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  z-index: 50;
+  overflow: hidden;
+  padding: 0.5rem 0;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #4a5568;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  position: relative;
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background-color: #f7fafc;
+}
+
+.dropdown-item.active {
+  background-color: #ebf8ff;
+  color: #2b6cb0;
+}
+
+.check-icon {
+  width: 16px;
+  height: 16px;
+  color: #3182ce;
+  margin-left: auto;
+}
+
+.dot-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.empty-dot {
+  background-color: transparent;
+  border: 2px solid #cbd5e0;
+}
+
+.dot-indicator.status-gray { background-color: #94a3b8; }
+.dot-indicator.status-success { background-color: #22c55e; }
+.dot-indicator.status-fail { background-color: #ef4444; }
+.dot-indicator.status-create { background-color: #10b981; }
+.dot-indicator.status-update { background-color: #3b82f6; }
+.dot-indicator.status-auth { background-color: #8b5cf6; }
+.dot-indicator.status-vehicle { background-color: #f59e0b; }
+.dot-indicator.status-trip { background-color: #0ea5e9; }
+.dot-indicator.status-checkpoint { background-color: #f43f5e; }
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
 }
 
 .loading {

@@ -11,25 +11,65 @@
     <div class="filters">
       <div class="filter-group">
         <label>ระดับความรุนแรง</label>
-        <div class="select-wrapper">
-          <select v-model="filters.severity" @change="fetchAlerts">
-            <option value="">ทั้งหมด</option>
-            <option value="WARNING">คำเตือน</option>
-            <option value="CRITICAL">วิกฤต</option>
-          </select>
+        <div class="custom-dropdown severity-filter">
+          <div class="dropdown-trigger" @click="isSeverityOpen = !isSeverityOpen">
+            <span v-if="currentSeverityOption.value !== ''" :class="['dot-indicator', currentSeverityOption.colorClass]"></span>
+            <span>{{ currentSeverityOption.label }}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="chevron" :class="{ 'chevron-up': isSeverityOpen }">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+          <Transition name="fade-slide">
+            <div v-if="isSeverityOpen" class="dropdown-menu">
+              <div 
+                v-for="opt in severityOptions" 
+                :key="opt.value" 
+                class="dropdown-item"
+                :class="{ 'active': filters.severity === opt.value }"
+                @click="selectSeverity(opt.value)"
+              >
+                <span v-if="opt.value !== ''" :class="['dot-indicator', opt.colorClass]"></span>
+                <span v-else class="dot-indicator empty-dot"></span>
+                {{ opt.label }}
+                <!-- Checkmark -->
+                <svg v-if="filters.severity === opt.value" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="check-icon">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+          </Transition>
         </div>
       </div>
 
       <div class="filter-group">
         <label>ประเภท</label>
-        <div class="select-wrapper">
-          <select v-model="filters.resource_type" @change="fetchAlerts">
-            <option value="">ทั้งหมด</option>
-            <option value="VEHICLE">ยานพาหนะ</option>
-            <option value="MAINTENANCE">การบำรุงรักษา</option>
-            <option value="DRIVER">คนขับ</option>
-            <option value="TRIP">การเดินทาง</option>
-          </select>
+        <div class="custom-dropdown resource-filter">
+          <div class="dropdown-trigger" @click="isResourceOpen = !isResourceOpen">
+            <span v-if="currentResourceOption.value !== ''" :class="['dot-indicator', currentResourceOption.colorClass]"></span>
+            <span>{{ currentResourceOption.label }}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="chevron" :class="{ 'chevron-up': isResourceOpen }">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+          <Transition name="fade-slide">
+            <div v-if="isResourceOpen" class="dropdown-menu">
+              <div 
+                v-for="opt in resourceOptions" 
+                :key="opt.value" 
+                class="dropdown-item"
+                :class="{ 'active': filters.resource_type === opt.value }"
+                @click="selectResource(opt.value)"
+              >
+                <span v-if="opt.value !== ''" :class="['dot-indicator', opt.colorClass]"></span>
+                <span v-else class="dot-indicator empty-dot"></span>
+                {{ opt.label }}
+                <!-- Checkmark -->
+                <svg v-if="filters.resource_type === opt.value" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="check-icon">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+          </Transition>
         </div>
       </div>
 
@@ -207,7 +247,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { alertsApi } from '../api/alerts'
 
 const alerts = ref([])
@@ -216,6 +256,52 @@ const filters = ref({
   severity: '',
   resource_type: '',
 })
+
+const isSeverityOpen = ref(false)
+const isResourceOpen = ref(false)
+
+const severityOptions = [
+  { value: '', label: 'ทั้งหมด', colorClass: 'status-all' },
+  { value: 'WARNING', label: 'คำเตือน', colorClass: 'status-warning' },
+  { value: 'CRITICAL', label: 'วิกฤต', colorClass: 'status-critical' }
+]
+
+const resourceOptions = [
+  { value: '', label: 'ทั้งหมด' },
+  { value: 'VEHICLE', label: 'ยานพาหนะ' },
+  { value: 'MAINTENANCE', label: 'การบำรุงรักษา' },
+  { value: 'DRIVER', label: 'คนขับ' },
+  { value: 'TRIP', label: 'การเดินทาง' }
+]
+
+const currentSeverityOption = computed(() => {
+  return severityOptions.find((o) => o.value === filters.value.severity) || severityOptions[0]
+})
+
+const currentResourceOption = computed(() => {
+  return resourceOptions.find((o) => o.value === filters.value.resource_type) || resourceOptions[0]
+})
+
+const selectSeverity = (val) => {
+  filters.value.severity = val
+  isSeverityOpen.value = false
+  fetchAlerts()
+}
+
+const selectResource = (val) => {
+  filters.value.resource_type = val
+  isResourceOpen.value = false
+  fetchAlerts()
+}
+
+const closeDropdowns = (e) => {
+  if (!e.target.closest('.custom-dropdown.severity-filter')) {
+    isSeverityOpen.value = false
+  }
+  if (!e.target.closest('.custom-dropdown.resource-filter')) {
+    isResourceOpen.value = false
+  }
+}
 
 const criticalCount = computed(() => alerts.value.filter((a) => a.severity === 'CRITICAL').length)
 const warningCount = computed(() => alerts.value.filter((a) => a.severity === 'WARNING').length)
@@ -263,7 +349,12 @@ const formatDate = (dateString) => {
 }
 
 onMounted(() => {
+  document.addEventListener('click', closeDropdowns)
   fetchAlerts()
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeDropdowns)
 })
 </script>
 
@@ -338,6 +429,7 @@ h1 {
   flex-direction: column;
   gap: 8px;
   min-width: 200px;
+  padding-right: 30px;
 }
 
 .filter-group label {
@@ -346,45 +438,113 @@ h1 {
   color: #475569;
 }
 
-.select-wrapper {
+.custom-dropdown {
   position: relative;
   width: 100%;
+  user-select: none;
 }
 
-.filters select {
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  font-size: 14px;
-  color: #334155;
+.dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   background-color: #f8fafc;
+  border: 1px solid transparent;
+  padding: 10px 16px;
+  border-radius: 9999px;
+  color: #4a5568;
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
-  appearance: none;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  width: 100%;
+  justify-content: space-between;
 }
 
-.select-wrapper::after {
-  content: '▼';
-  font-size: 10px;
+.dropdown-trigger:hover {
+  background-color: #edf2f7;
+}
+
+.chevron {
+  width: 14px;
+  height: 14px;
+  color: #a0aec0;
+  transition: transform 0.2s ease;
+  margin-left: auto;
+}
+
+.chevron-up {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
   position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  color: #94a3b8;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  min-width: 100%;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  z-index: 50;
+  overflow: hidden;
+  padding: 0.5rem 0;
 }
 
-.filters select:hover {
-  background-color: #fff;
-  border-color: #cbd5e1;
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #4a5568;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  position: relative;
+  white-space: nowrap;
 }
 
-.filters select:focus {
-  outline: none;
-  background-color: #fff;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+.dropdown-item:hover {
+  background-color: #f7fafc;
+}
+
+.dropdown-item.active {
+  background-color: #ebf8ff;
+  color: #2b6cb0;
+}
+
+.check-icon {
+  width: 16px;
+  height: 16px;
+  color: #3182ce;
+  margin-left: auto;
+}
+
+.dot-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.empty-dot {
+  background-color: transparent;
+  border: 2px solid #cbd5e0;
+}
+
+.dot-indicator.status-warning { background-color: #f59e0b; }
+.dot-indicator.status-critical { background-color: #ef4444; }
+.dot-indicator.status-gray { background-color: #94a3b8; }
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
 }
 
 .refresh-btn {

@@ -1,10 +1,41 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import apiClient from '../api/axios'
 import Swal from 'sweetalert2'
 
 const trips = ref([])
 const availableVehicles = ref([])
+const selectedStatus = ref('')
+
+const isFilterOpen = ref(false)
+const filterOptions = [
+  { value: '', label: 'All Statuses', colorClass: 'status-all' },
+  { value: 'SCHEDULED', label: 'Scheduled', colorClass: 'status-scheduled' },
+  { value: 'IN_PROGRESS', label: 'In Progress', colorClass: 'status-in_progress' },
+  { value: 'COMPLETED', label: 'Completed', colorClass: 'status-completed' },
+  { value: 'CANCELLED', label: 'Cancelled', colorClass: 'status-cancelled' }
+]
+
+const currentFilterOption = computed(() => {
+  return filterOptions.find((o) => o.value === selectedStatus.value) || filterOptions[0]
+})
+
+const selectFilter = (val) => {
+  selectedStatus.value = val
+  isFilterOpen.value = false
+}
+
+// Click outside to close custom dropdown
+const closeFilterDropdown = (e) => {
+  if (!e.target.closest('.custom-dropdown')) {
+    isFilterOpen.value = false
+  }
+}
+
+const filteredTrips = computed(() => {
+  if (!selectedStatus.value) return trips.value
+  return trips.value.filter((trip) => trip.status === selectedStatus.value)
+})
 const availableDrivers = ref([])
 const isLoading = ref(true)
 const errorMessage = ref('')
@@ -280,6 +311,7 @@ const updateCheckpointStatus = async (checkpointIndex, newStatus) => {
 }
 
 onMounted(() => {
+  document.addEventListener('click', closeFilterDropdown)
   const token = localStorage.getItem('accessToken')
   if (token) {
     const decoded = decodeToken(token)
@@ -287,6 +319,10 @@ onMounted(() => {
   }
   fetchTrips()
   fetchOptions()
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeFilterDropdown)
 })
 </script>
 
@@ -297,20 +333,52 @@ onMounted(() => {
     <div v-else class="table-container">
       <div class="header-actions">
         <h2>All Trips</h2>
-        <!-- ปุ่ม Create Trip จะแสดงเมื่อเป็น ADMIN หรือ DISPATCHER เท่านั้น -->
-        <button v-if="canManageTrips" @click="openAddModal" class="btn-add">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            stroke="currentColor"
-            class="icon-small"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Create Trip
-        </button>
+        <div class="header-actions-right">
+          <div class="custom-dropdown">
+            <div class="dropdown-trigger" @click="isFilterOpen = !isFilterOpen">
+              <span v-if="currentFilterOption.value !== ''" :class="['dot-indicator', currentFilterOption.colorClass]"></span>
+              <span>{{ currentFilterOption.label }}</span>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="chevron" :class="{ 'chevron-up': isFilterOpen }">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            <Transition name="fade-slide">
+              <div v-if="isFilterOpen" class="dropdown-menu">
+                <div 
+                  v-for="opt in filterOptions" 
+                  :key="opt.value" 
+                  class="dropdown-item"
+                  :class="{ 'active': selectedStatus === opt.value }"
+                  @click="selectFilter(opt.value)"
+                >
+                  <span v-if="opt.value !== ''" :class="['dot-indicator', opt.colorClass]"></span>
+                  <span v-else class="dot-indicator empty-dot"></span>
+                  {{ opt.label }}
+                  
+                  <!-- Checkmark for selected -->
+                  <svg v-if="selectedStatus === opt.value" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="check-icon">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              </div>
+            </Transition>
+          </div>
+          <!-- ปุ่ม Create Trip จะแสดงเมื่อเป็น ADMIN หรือ DISPATCHER เท่านั้น -->
+          <button v-if="canManageTrips" @click="openAddModal" class="btn-add">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="icon-small"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Create Trip
+          </button>
+        </div>
       </div>
 
       <div class="table-scroll-wrapper">
@@ -328,7 +396,7 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="trip in trips" :key="trip.id">
+            <tr v-for="trip in filteredTrips" :key="trip.id">
               <td class="trip-id" :title="trip.id">{{ trip.id.substring(0, 8) }}</td>
               <td class="font-medium">{{ trip.vehicle_license_plate || 'Unknown' }}</td>
               <td>{{ trip.driver_name || 'Unknown' }}</td>
@@ -373,7 +441,7 @@ onMounted(() => {
                 </button>
               </td>
             </tr>
-            <tr v-if="trips.length === 0">
+            <tr v-if="filteredTrips.length === 0">
               <td colspan="8" class="text-center py-4 text-gray-500">
                 No trips found. Create one to get started.
               </td>
@@ -599,6 +667,119 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+}
+
+.header-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.custom-dropdown {
+  position: relative;
+  display: inline-block;
+  user-select: none;
+}
+
+.dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #f8fafc;
+  border: 1px solid transparent;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  color: #4a5568;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dropdown-trigger:hover {
+  background-color: #edf2f7;
+}
+
+.chevron {
+  width: 14px;
+  height: 14px;
+  color: #a0aec0;
+  transition: transform 0.2s ease;
+}
+
+.chevron-up {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 180px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  z-index: 50;
+  overflow: hidden;
+  padding: 0.5rem 0;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #4a5568;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  position: relative;
+}
+
+.dropdown-item:hover {
+  background-color: #f7fafc;
+}
+
+.dropdown-item.active {
+  background-color: #ebf8ff;
+  color: #2b6cb0;
+}
+
+.check-icon {
+  width: 16px;
+  height: 16px;
+  color: #3182ce;
+  margin-left: auto;
+}
+
+.dot-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.empty-dot {
+  background-color: transparent;
+  border: 2px solid #cbd5e0;
+}
+
+/* Reusing existing badge colors for dots */
+.dot-indicator.status-scheduled { background-color: #f6e05e; }
+.dot-indicator.status-in_progress { background-color: #63b3ed; }
+.dot-indicator.status-completed { background-color: #68d391; }
+.dot-indicator.status-cancelled { background-color: #fc8181; }
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
 }
 
 h2 {

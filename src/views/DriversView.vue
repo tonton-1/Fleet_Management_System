@@ -1,9 +1,54 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import apiClient from '../api/axios'
 import Swal from 'sweetalert2'
 
 const drivers = ref([])
+const filters = ref({
+  status: '',
+  search: '',
+})
+
+const isStatusOpen = ref(false)
+
+const statusOptions = [
+  { value: '', label: 'ทุกสถานะ', colorClass: 'status-gray' },
+  { value: 'ACTIVE', label: 'ใช้งาน', colorClass: 'status-active' },
+  { value: 'INACTIVE', label: 'ไม่ใช้งาน', colorClass: 'status-inactive' },
+  { value: 'SUSPENDED', label: 'ถูกระงับ', colorClass: 'status-suspended' },
+]
+
+const currentStatusOption = computed(() => {
+  return statusOptions.find(o => o.value === filters.value.status) || statusOptions[0]
+})
+
+const selectStatus = (val) => {
+  filters.value.status = val
+  isStatusOpen.value = false
+}
+
+const closeDropdowns = (e) => {
+  if (!e.target.closest('.custom-dropdown.status-filter')) {
+    isStatusOpen.value = false
+  }
+}
+
+const filteredDrivers = computed(() => {
+  return drivers.value.filter((d) => {
+    if (filters.value.status && d.status !== filters.value.status) return false
+    if (filters.value.search) {
+      const s = filters.value.search.toLowerCase()
+      if (
+        !d.name.toLowerCase().includes(s) &&
+        !d.license_number.toLowerCase().includes(s) &&
+        !(d.phone && d.phone.includes(s))
+      ) {
+        return false
+      }
+    }
+    return true
+  })
+})
 const isLoading = ref(true)
 const errorMessage = ref('')
 const currentUserRole = ref('')
@@ -205,7 +250,12 @@ onMounted(() => {
       currentUserRole.value = decoded.role
     }
   }
+  document.addEventListener('click', closeDropdowns)
   fetchDrivers()
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeDropdowns)
 })
 </script>
 
@@ -224,6 +274,39 @@ onMounted(() => {
         </button>
       </div>
 
+      <div class="filters">
+        <div class="custom-dropdown status-filter">
+          <div class="dropdown-trigger" @click="isStatusOpen = !isStatusOpen">
+            <span v-if="currentStatusOption.value !== ''" :class="['dot-indicator', currentStatusOption.colorClass]"></span>
+            <span>{{ currentStatusOption.label }}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="chevron" :class="{ 'chevron-up': isStatusOpen }">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+          <Transition name="fade-slide">
+            <div v-if="isStatusOpen" class="dropdown-menu">
+              <div 
+                v-for="opt in statusOptions" 
+                :key="opt.value" 
+                class="dropdown-item"
+                :class="{ 'active': filters.status === opt.value }"
+                @click="selectStatus(opt.value)"
+              >
+                <span v-if="opt.value !== ''" :class="['dot-indicator', opt.colorClass]"></span>
+                <span v-else class="dot-indicator empty-dot"></span>
+                {{ opt.label }}
+                <!-- Checkmark -->
+                <svg v-if="filters.status === opt.value" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="check-icon">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+          </Transition>
+        </div>
+        
+        <input type="text" v-model="filters.search" placeholder="ค้นหารายชื่อ, ใบขับขี่, หรือเบอร์โทร..." class="search-input" />
+      </div>
+
       <div class="table-scroll-wrapper">
         <table>
           <thead>
@@ -237,7 +320,7 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="driver in drivers" :key="driver.id">
+            <tr v-for="driver in filteredDrivers" :key="driver.id">
               <td class="font-medium">{{ driver.name }}</td>
               <td>{{ driver.license_number }}</td>
               <td>
@@ -257,7 +340,7 @@ onMounted(() => {
                 <button @click="deleteDriver(driver)" class="btn-delete">Delete</button>
               </td>
             </tr>
-            <tr v-if="drivers.length === 0">
+            <tr v-if="filteredDrivers.length === 0">
               <td :colspan="isAdmin ? 6 : 5" class="empty-row">No drivers found.</td>
             </tr>
           </tbody>
@@ -362,7 +445,153 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.filters {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  background: white;
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #f8fafc;
+  color: #334155;
+  transition: all 0.2s;
+  flex: 2;
+  min-width: 280px;
+  box-sizing: border-box;
+}
+
+.search-input:hover {
+  border-color: #cbd5e1;
+  background: #fff;
+}
+.search-input:focus {
+  outline: none;
+  background: white;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.custom-dropdown {
+  position: relative;
+  flex: 1;
+  min-width: 150px;
+  user-select: none;
+}
+
+.dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  padding: 12px 16px;
+  border-radius: 9999px;
+  color: #4a5568;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.dropdown-trigger:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.chevron {
+  width: 14px;
+  height: 14px;
+  color: #a0aec0;
+  transition: transform 0.2s ease;
+  margin-left: auto;
+}
+
+.chevron-up {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  min-width: 100%;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  z-index: 50;
+  overflow: hidden;
+  padding: 0.5rem 0;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #4a5568;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  position: relative;
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background-color: #f7fafc;
+}
+
+.dropdown-item.active {
+  background-color: #ebf8ff;
+  color: #2b6cb0;
+}
+
+.check-icon {
+  width: 16px;
+  height: 16px;
+  color: #3182ce;
+  margin-left: auto;
+}
+
+.dot-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.empty-dot {
+  background-color: transparent;
+  border: 2px solid #cbd5e0;
+}
+
+.dot-indicator.status-gray { background-color: #94a3b8; }
+.dot-indicator.status-active { background-color: #48bb78; }
+.dot-indicator.status-inactive { background-color: #a0aec0; }
+.dot-indicator.status-suspended { background-color: #e53e3e; }
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
 }
 
 h2 {
@@ -558,6 +787,17 @@ tbody tr:last-child td {
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(30px) scale(0.95); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 768px) {
+  .filters {
+    flex-direction: column;
+  }
+  .search-input,
+  .custom-dropdown {
+    min-width: 100%;
+    width: 100%;
+  }
 }
 
 .modal-content h3 {

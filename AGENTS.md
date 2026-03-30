@@ -67,3 +67,16 @@ npm run dev
 - [x] Login UI Redesign (Minimal White theme completed)
 - [x] Add overarching Trip Status controls (e.g. manually Start, Complete, or Cancel trips)
 - [ ] Dashboard charts (vehicles by status, trip distance trend)
+
+## 6. UI Design Patterns
+
+### Minimal Custom Dropdown Pattern
+- **Overview**: Native `<select>` elements are avoided for status filters to allow richer styling (e.g., color dots, custom hover states).
+- **Structure**: Uses a custom Vue component structure (`.custom-dropdown`) consisting of a trigger button and an absolute-positioned menu.
+- **Visuals**: 
+  - Pill-shaped trigger (`border-radius: 9999px`) with a subtle `#f8fafc` background.
+  - Animated SVG Chevron (rotates 180deg when open).
+  - Clean drop-shadow on the dropdown menu (`box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1)`).
+- **Active State**: Selected items are highlighted with a soft blue background (`#ebf8ff`), matching text (`#2b6cb0`), and a checkmark SVG.
+- **Status Dots**: Statuses are visually represented using a `.dot-indicator` class, mapping to specific colors (e.g., `status-scheduled` -> `#f6e05e`).
+- **Interaction**: Implements an `onMounted`/`onUnmounted` click listener to auto-close the dropdown when clicking outside.

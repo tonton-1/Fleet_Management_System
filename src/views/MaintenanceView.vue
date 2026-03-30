@@ -281,7 +281,7 @@ onMounted(() => {
 
 .main-layout {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: 32px;
 }
 
@@ -305,6 +305,7 @@ h1 {
   letter-spacing: -0.025em;
   background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -384,12 +385,11 @@ h1 {
 .maintenance-table {
   width: 100%;
   border-collapse: collapse;
-  white-space: nowrap;
 }
 
 .maintenance-table th {
   background: #f8fafc;
-  padding: 18px 32px;
+  padding: 16px 16px;
   text-align: left;
   font-size: 13px;
   font-weight: 600;
@@ -397,10 +397,11 @@ h1 {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
 }
 
 .maintenance-table td {
-  padding: 16px 32px;
+  padding: 16px 16px;
   font-size: 14px;
   color: #334155;
   border-bottom: 1px solid #f1f5f9;

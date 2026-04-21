@@ -1767,6 +1767,17 @@ app.get('/audit-logs', authenticateToken, async (req, res) => {
   }
 })
 
+// Serve Vue frontend build (dist/) in production
+const distPath = path.join(__dirname, 'dist')
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath))
+  // SPA fallback: ทุก route ที่ไม่ใช่ API ให้ส่ง index.html กลับไป
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'))
+  })
+  console.log('[Static] Serving Vue frontend from /dist')
+}
+
 const PORT = process.env.PORT || 3000
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`)

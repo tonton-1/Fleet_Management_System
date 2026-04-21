@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:22-alpine
 
 # Set working directory
 WORKDIR /app
@@ -9,6 +9,9 @@ RUN npm install
 
 # Copy application code
 COPY . .
+
+# Build Vue frontend (outputs to /dist)
+RUN npm run build
 
 # Expose backend port
 EXPOSE 3000

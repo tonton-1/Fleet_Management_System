@@ -2,8 +2,10 @@ import axios from 'axios'
 import router from '../router'
 import { stopTokenExpirationWatcher } from '../utils/tokenExpiration'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+
 const apiClient = axios.create({
-  baseURL: 'http://localhost:3000', // Set the base URL for all requests
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -46,7 +48,7 @@ apiClient.interceptors.response.use(
         const refreshToken = localStorage.getItem('refreshToken')
         if (refreshToken) {
           // ลองนำ Refresh Token ไปขอ Access Token ใหม่จาก Backend
-          const res = await axios.post('http://localhost:3000/auth/refresh', {
+          const res = await axios.post(`${API_URL}/auth/refresh`, {
             refresh_token: refreshToken,
           })
 

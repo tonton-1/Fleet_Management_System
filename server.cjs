@@ -717,12 +717,13 @@ app.post('/auth/refresh', (req, res) => {
   const { refresh_token } = req.body
   if (!refresh_token) return sendError(res, 401, 'UNAUTHORIZED', 'Refresh token required')
 
-  jwt.verify(refresh_token, process.env.JWT_SECRET || 'secret123', (err, user) => {
+  // ใช้ JWT_REFRESH_SECRET สำหรับ verify (ให้ตรงกับตอน login ที่ sign ด้วย JWT_REFRESH_SECRET)
+  jwt.verify(refresh_token, process.env.JWT_REFRESH_SECRET, (err, user) => {
     if (err) return sendError(res, 403, 'FORBIDDEN', 'Invalid refresh token')
 
     const accessToken = jwt.sign(
-      { userId: user.userId, username: user.username, role: user.role },
-      process.env.JWT_SECRET || 'secret123',
+      { id: user.id, username: user.username, role: user.role },
+      process.env.JWT_ACCESS_SECRET,
       { expiresIn: '15m' },
     )
     res.json({ access_token: accessToken })

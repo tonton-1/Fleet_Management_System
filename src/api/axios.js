@@ -2,7 +2,9 @@ import axios from 'axios'
 import router from '../router'
 import { stopTokenExpirationWatcher } from '../utils/tokenExpiration'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+// ถ้า VITE_API_URL ไม่ถูก set (บน Railway ที่ Frontend+Backend อยู่บน URL เดียวกัน)
+// ให้ใช้ relative URL (empty string) แทน — Axios จะส่ง request ไปที่ domain เดียวกัน
+const API_URL = import.meta.env.VITE_API_URL || ''
 
 const apiClient = axios.create({
   baseURL: API_URL,

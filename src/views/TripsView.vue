@@ -391,7 +391,7 @@ onUnmounted(() => {
               <th>Route</th>
               <th>Status</th>
               <th>Started At</th>
-              <th>Ended At</th>
+              <th>Distance</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -426,7 +426,7 @@ onUnmounted(() => {
                 </span>
               </td>
               <td class="time-cell">{{ formatDateTime(trip.started_at) }}</td>
-              <td class="time-cell">{{ formatDateTime(trip.ended_at) }}</td>
+              <td class="distance-cell">{{ trip.distance_km ? trip.distance_km + ' km' : '-' }}</td>
               <td class="action-cell">
                 <button @click="openTracker(trip.id)" class="btn-view">Track Trip</button>
                 <button
@@ -580,12 +580,29 @@ onUnmounted(() => {
     <div v-if="isTrackerOpen && selectedTrip" class="modal-overlay">
       <div class="modal-content tracker-modal">
         <div class="tracker-header">
-          <h3>Trip Tracker: {{ selectedTrip.id.substring(0, 8) }}...</h3>
+          <h3>Tracking: <span class="trip-id-highlight">{{ selectedTrip.id.substring(0, 8) }}</span></h3>
           <span :class="['status-badge', `status-${selectedTrip.status.toLowerCase()}`]">
             {{ selectedTrip.status }}
           </span>
         </div>
-        <p class="tracker-route">{{ selectedTrip.origin }} &rarr; {{ selectedTrip.destination }}</p>
+        <div class="tracker-route-wrap">
+          <div class="route-pill origin">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="icon-tiny">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+            </svg>
+            {{ selectedTrip.origin }}
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="icon-tiny arrow-route">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
+          </svg>
+          <div class="route-pill dest">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="icon-tiny">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.5l6 6L21 4.5" />
+            </svg>
+            {{ selectedTrip.destination }}
+          </div>
+        </div>
         <hr class="divider" />
 
         <div class="tracker-timeline">
@@ -1245,7 +1262,9 @@ tbody tr:last-child td {
 
 /* --- Trip Tracker (Optimistic Timeline) --- */
 .tracker-modal {
-  max-width: 600px;
+  max-width: 520px;
+  padding: 2rem 1.5rem;
+  border-radius: 16px;
 }
 .tracker-header {
   display: flex;
@@ -1253,22 +1272,85 @@ tbody tr:last-child td {
   align-items: center;
   margin-bottom: 1rem;
 }
-.tracker-route {
-  font-size: 1.15rem;
-  color: #2d3748;
-  margin-bottom: 1.5rem;
+.tracker-header h3 {
+  margin: 0 !important;
+  font-size: 1.25rem;
+  color: #0f172a;
+}
+.trip-id-highlight {
+  color: #64748b;
+  font-weight: 500;
+}
+.tracker-route-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.2rem;
+  flex-wrap: wrap;
+}
+.route-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
   font-weight: 600;
 }
+.route-pill.origin {
+  background-color: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+.route-pill.dest {
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+.icon-tiny {
+  width: 14px;
+  height: 14px;
+}
+.arrow-route {
+  color: #94a3b8;
+}
+
 .divider {
   border: 0;
-  border-top: 1px solid #e2e8f0;
-  margin: 1.5rem 0;
+  border-top: 1px dashed #e2e8f0;
+  margin: 1.2rem 0;
 }
 
 .tracker-timeline {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  padding-left: 0.2rem;
+  padding-top: 0.5rem;
+}
+
+.tracker-modal .modal-actions {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: none;
+}
+
+.tracker-timeline::-webkit-scrollbar {
+  width: 6px;
+}
+.tracker-timeline::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 4px;
+}
+.tracker-timeline::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.tracker-timeline::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .timeline-item {
@@ -1332,18 +1414,22 @@ tbody tr:last-child td {
 .step-content {
   flex: 1;
   background-color: white;
-  padding: 1.25rem;
-  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  border-radius: 12px;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
   transition: all 0.3s ease;
 }
 .step-content:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.04);
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
 }
 .step-content h4 {
   margin: 0 0 0.25rem 0;
-  color: #2d3748;
+  color: #1e293b;
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 .step-purpose {
   margin: 0 0 0.5rem 0;
@@ -1385,10 +1471,10 @@ tbody tr:last-child td {
 }
 
 .step-actions {
-  margin-top: 1rem;
+  margin-top: 0.75rem;
   display: flex;
   gap: 0.5rem;
-  border-top: 1px dashed #cbd5e0;
+  border-top: 1px dashed #e2e8f0;
   padding-top: 0.75rem;
 }
 

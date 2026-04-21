@@ -1475,22 +1475,22 @@ app.patch(
             }
           }
         }
-
-        updateQuery += ', updated_at = NOW() WHERE id = ?'
-        queryParams.push(id)
-
-        // 3. Execute the update
-        await connection.query(updateQuery, queryParams)
-
-        await connection.commit()
-
-        await logAudit(req, 'UPDATE_TRIP_STATUS', 'TRIP', id, 'SUCCESS', {
-          old_status: currentTrip.status,
-          new_status: status,
-        })
-
-        res.json({ message: `Trip status updated to ${status} successfully` })
       }
+
+      updateQuery += ', updated_at = NOW() WHERE id = ?'
+      queryParams.push(id)
+
+      // 3. Execute the update
+      await connection.query(updateQuery, queryParams)
+
+      await connection.commit()
+
+      await logAudit(req, 'UPDATE_TRIP_STATUS', 'TRIP', id, 'SUCCESS', {
+        old_status: currentTrip.status,
+        new_status: status,
+      })
+
+      res.json({ message: `Trip status updated to ${status} successfully` })
     } catch (error) {
       await connection.rollback()
       console.error('Update Trip Status Error:', error)

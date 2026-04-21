@@ -39,16 +39,26 @@ if (fs.existsSync(swaggerDocumentPath)) {
 // ----------------------------
 
 // Create DB connection pool
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-})
+// ใช้ MYSQL_URL ถ้ามี (Railway) ไม่งั้น fallback ไปใช้ credentials แยกๆ (local)
+const poolConfig = process.env.MYSQL_URL
+  ? {
+      uri: process.env.MYSQL_URL,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+    }
+  : {
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+    }
+
+const pool = mysql.createPool(poolConfig)
 
 // Common Error Schema Response Helper
 const sendError = (res, statusCode, code, message, details = {}) => {

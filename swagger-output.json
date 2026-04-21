@@ -946,6 +946,24 @@
           }
         }
       }
+    },
+    "/{*path}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "*path",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   }
 }

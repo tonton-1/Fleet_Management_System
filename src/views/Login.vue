@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import apiClient from '../api/axios'
 import { startTokenExpirationWatcher } from '../utils/tokenExpiration'
 
 const router = useRouter()
@@ -23,7 +23,7 @@ const handleLogin = async () => {
   errorMessage.value = ''
 
   try {
-    const response = await axios.post('http://localhost:3000/auth/login', {
+    const response = await apiClient.post('/auth/login', {
       username: username.value,
       password: password.value,
     })

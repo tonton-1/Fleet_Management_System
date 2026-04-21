@@ -108,7 +108,16 @@ const handleLogin = async () => {
         </button>
       </form>
 
- 
+      <!-- Demo Credentials Info -->
+      <div class="demo-info">
+        <div class="demo-badge">Public Demo Account</div>
+        <div class="demo-text">
+          <span>Username: <strong>user1</strong></span>
+          <span class="divider">•</span>
+          <span>Password: <strong>1234</strong></span>
+        </div>
+      </div>
+
     </div>
   </div>
 </template>
@@ -376,6 +385,55 @@ const handleLogin = async () => {
 }
 .footer-info a:hover {
   color: #111827;
+}
+
+/* Demo Credentials Info Box */
+.demo-info {
+  margin-top: 28px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px dashed #cbd5e1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: fadeIn 0.5s ease 0.3s both;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.demo-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #e2e8f0;
+  color: #475569;
+  padding: 4px 10px;
+  border-radius: 9999px;
+}
+.demo-text {
+  font-size: 13.5px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.demo-text strong {
+  color: #0f172a;
+  font-family: monospace;
+  font-size: 14.5px;
+  background: #e2e8f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  user-select: all; /* Easy to copy on double click */
+}
+.demo-text .divider {
+  color: #cbd5e1;
 }
 
 /* Responsive */

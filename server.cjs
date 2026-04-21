@@ -739,10 +739,19 @@ app.post('/auth/register', async (req, res) => {
     #swagger.parameters['body'] = {
         in: 'body',
         description: 'Desired user credentials',
-        schema: { username: "newadmin", password: "password123" }
+        schema: { username: "newadmin", password: "password123", register_secret: "my_secure_register_token_123" }
     }
   */
-  const { username, password } = req.body
+  const { username, password, register_secret } = req.body
+  
+  // Security validation using environment variable
+  const expectedSecret = process.env.REGISTER_SECRET
+  const providedSecret = req.headers['x-register-secret'] || register_secret
+
+  if (!expectedSecret || providedSecret !== expectedSecret) {
+    return sendError(res, 403, 'FORBIDDEN', 'Invalid or missing registration secret. Endpoint is protected.')
+  }
+
   if (!username || !password)
     return sendError(res, 400, 'BAD_REQUEST', 'Missing username or password')
 

@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: fleet-management-system
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # Render จะ build จาก Dockerfile ซึ่งรวม:
+    #   1. npm install
+    #   2. npm run build (Vue frontend)
+    #   3. node swagger.cjs && node server.cjs
+    plan: free
+    healthCheckPath: /
+    envVars:
+      # ===== Database (ใช้ External MySQL เช่น Clever Cloud / TiDB Cloud) =====
+      # วิธีที่ 1: ใช้ MYSQL_URL (แนะนำ)
+      - key: MYSQL_URL
+        sync: false  # ต้องกรอกเองบน Render Dashboard
+
+      # วิธีที่ 2: ใช้ credentials แยก (ถ้าไม่ใช้ MYSQL_URL)
+      # - key: DB_HOST
+      #   sync: false
+      # - key: DB_PORT
+      #   value: 3306
+      # - key: DB_USER
+      #   sync: false
+      # - key: DB_PASSWORD
+      #   sync: false
+      # - key: DB_NAME
+      #   sync: false
+
+      # ===== JWT Secrets =====
+      - key: JWT_ACCESS_SECRET
+        generateValue: true   # Render จะ generate ค่าสุ่มให้อัตโนมัติ
+
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+
+      # ===== App Config =====
+      - key: NODE_ENV
+        value: production
+
+      - key: PORT
+        value: 3000
+
+      - key: TZ
+        value: Asia/Bangkok

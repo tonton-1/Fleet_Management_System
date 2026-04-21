@@ -1772,7 +1772,7 @@ const distPath = path.join(__dirname, 'dist')
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath))
   // SPA fallback: ทุก route ที่ไม่ใช่ API ให้ส่ง index.html กลับไป
-  app.get('*', (req, res) => {
+  app.get('/{*path}', (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'))
   })
   console.log('[Static] Serving Vue frontend from /dist')

@@ -35,6 +35,10 @@ services:
       - key: JWT_REFRESH_SECRET
         generateValue: true
 
+      # ===== Security =====
+      - key: REGISTER_SECRET
+        sync: false  # ต้องกรอกรหัสสำหรับ Register ผ่านเว็บ Render Dashboard
+
       # ===== App Config =====
       - key: NODE_ENV
         value: production

@@ -43,7 +43,6 @@ if (fs.existsSync(swaggerDocumentPath)) {
 const poolConfig = process.env.MYSQL_URL
   ? {
       uri: process.env.MYSQL_URL,
-      timezone: '+07:00',
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
@@ -54,7 +53,6 @@ const poolConfig = process.env.MYSQL_URL
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      timezone: '+07:00', 
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
@@ -119,10 +117,14 @@ const logAudit = async (req, action, resourceType, resourceId, result, detail = 
   try {
     const id = crypto.randomUUID()
     const userId = req?.user?.id || null
-  
+    
+    // ดึงเวลาปัจจุบันแล้วชดเชยเวลาให้เป็น +07:00
+    const offset = 7 * 60 * 60 * 1000; 
+    const thaiTime = new Date(Date.now() + offset).toISOString().slice(0, 19).replace('T', ' ');
+
     await pool.query(
-      `INSERT INTO audit_logs (id, user_id, action, resource_type, resource_id, result, detail, ip_address)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO audit_logs (id, user_id, action, resource_type, resource_id, result, detail, ip_address, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         userId,
@@ -132,6 +134,7 @@ const logAudit = async (req, action, resourceType, resourceId, result, detail = 
         result,
         detail ? JSON.stringify(detail) : null,
         req?.ip || null,
+        thaiTime 
       ],
     )
   } catch (err) {

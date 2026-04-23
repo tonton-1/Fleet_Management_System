@@ -117,10 +117,14 @@ const logAudit = async (req, action, resourceType, resourceId, result, detail = 
   try {
     const id = crypto.randomUUID()
     const userId = req?.user?.id || null
+    
+    // ดึงเวลาปัจจุบันแล้วชดเชยเวลาให้เป็น +07:00
+    const offset = 7 * 60 * 60 * 1000; 
+    const thaiTime = new Date(Date.now() + offset).toISOString().slice(0, 19).replace('T', ' ');
 
     await pool.query(
-      `INSERT INTO audit_logs (id, user_id, action, resource_type, resource_id, result, detail, ip_address)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO audit_logs (id, user_id, action, resource_type, resource_id, result, detail, ip_address, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         userId,
@@ -130,12 +134,14 @@ const logAudit = async (req, action, resourceType, resourceId, result, detail = 
         result,
         detail ? JSON.stringify(detail) : null,
         req?.ip || null,
+        thaiTime 
       ],
     )
   } catch (err) {
     console.error('[Audit] Failed to log:', err.message)
   }
 }
+
 
 // POST /auth/login endpoint
 app.post('/auth/login', async (req, res) => {
